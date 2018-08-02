@@ -31,16 +31,33 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
         super(DQNPlayerRelativeMoveScreen, self).step(obs)
 
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
-            inputs = obs.observation.feature_screen.player_relative
-            inputs = np.expand_dims(inputs, 0)
-            test = self.sess.run(
-                self.embed,
-                feed_dict={self.inputs: inputs}
-            )
-            print(test)
-            return FUNCTIONS.no_op()
+            x, y = self._epsilon_greedy_action_selection(obs)
+            print(obs.reward)
+            return FUNCTIONS.Move_screen("now", (x, y))
         else:
             return FUNCTIONS.select_army("select")
+
+    def _epsilon_greedy_action_selection(self, obs, decay_rate=0.1):
+        """Choose action from state with epsilon greedy strategy."""
+        explore_probability = np.exp(-decay_rate * self.episodes)
+
+        if explore_probability > np.random.rand():
+            x = np.random.randint(0, feature_screen_size[0])
+            y = np.random.randint(0, feature_screen_size[1])
+
+            return x, y
+
+        else:
+            inputs = obs.observation.feature_screen.player_relative
+
+            q_values = self.sess.run(
+                self.output,
+                feed_dict={self.inputs: np.expand_dims(inputs, 0)}
+            )
+
+            max_index = np.argmax(q_values)
+            x, y = np.unravel_index(max_index, feature_screen_size)
+            return x, y
 
     def _build_network(self):
         """CNN used to approximate Q table with screen features."""
@@ -77,3 +94,68 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
                 padding='SAME',
                 name='conv1'
             )
+            self.conv1_batchnorm = tf.layers.batch_normalization(
+                self.conv1,
+                training=True,
+                name='conv1_batchnorm'
+            )
+            self.conv1_activation = tf.nn.elu(
+                self.conv1_batchnorm,
+                name='conv1_activation'
+            )
+
+            # second convolutional layer
+            self.conv2 = tf.layers.conv2d(
+                inputs=self.conv1_activation,
+                filters=64,
+                kernel_size=[4, 4],
+                strides=[2, 2],
+                padding='SAME',
+                name='conv2'
+            )
+            self.conv2_batchnorm = tf.layers.batch_normalization(
+                self.conv2,
+                training=True,
+                name='conv2_batchnorm'
+            )
+            self.conv2_activation = tf.nn.elu(
+                self.conv2_batchnorm,
+                name='conv2_activation'
+            )
+
+            # third convolutional layer
+            self.conv3 = tf.layers.conv2d(
+                inputs=self.conv2_activation,
+                filters=128,
+                kernel_size=[4, 4],
+                strides=[2, 2],
+                padding='SAME',
+                name='conv3'
+            )
+            self.conv3_batchnorm = tf.layers.batch_normalization(
+                self.conv3,
+                training=True,
+                name='conv3_batchnorm'
+            )
+            self.conv3_activation = tf.nn.elu(
+                self.conv3_batchnorm,
+                name='conv3_activation'
+            )
+
+            # output layers
+            self.flatten = tf.layers.flatten(self.conv3_activation)
+
+            self.dense = tf.layers.dense(
+                inputs=self.flatten,
+                units=512,
+                activation=tf.nn.elu,
+                name='fully_connected'
+            )
+
+            self.output = tf.layers.dense(
+                inputs=self.dense,
+                units=np.prod(feature_screen_size),
+                activation=None,
+                name='output')
+
+            # output shape: (1, feature_screen_size[0]*feature_screen_size[1])
