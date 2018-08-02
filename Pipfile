@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 "pysc2" = "*"
+absl-py = "*"
+tensorflow = "*"
 
 [dev-packages]
 
