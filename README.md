@@ -1,6 +1,6 @@
 # StarCraft II Agents
 
-These agents interface directly with Deepmind's [PySC2](https://github.com/deepmind/pysc2) API
+These agents interface directly with Deepmind's [PySC2](https://github.com/deepmind/pysc2) API.
 
 ## Usage
 

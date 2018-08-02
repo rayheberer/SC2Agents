@@ -7,12 +7,11 @@ from absl import flags
 from pysc2.agents import base_agent
 from pysc2.lib import actions
 
-FUNCTIONS = actions.FUNCTIONS
-
 FLAGS = flags.FLAGS
 feature_screen_size = FLAGS.feature_screen_size
 feature_minimap_size = FLAGS.feature_minimap_size
 
+FUNCTIONS = actions.FUNCTIONS
 
 class QueueRandomMovements(base_agent.BaseAgent):
     """An agent that queues random screen movements."""
