@@ -13,6 +13,7 @@ feature_minimap_size = FLAGS.feature_minimap_size
 
 FUNCTIONS = actions.FUNCTIONS
 
+
 class QueueRandomMovements(base_agent.BaseAgent):
     """An agent that queues random screen movements."""
 
