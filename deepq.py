@@ -48,9 +48,16 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
     def __init__(self):
         """Initialize rewards/episodes/steps, build network."""
         super(DQNPlayerRelativeMoveScreen, self).__init__()
+        self.episode_steps = 0
+
+        # hyperparameters
+        self.learning_rate = 0.0001  # larger learning rates explode
+        self.discount_factor = 0.9
+        self.epsilon = 1
+        self.epsilon_step_decay_amount = 0.01
+        self.epsilon_episode_decay_factor = 0.9
 
         # build network, and initialize session
-        self.learning_rate = 0.01
         self._build_network()
 
         init_op = tf.global_variables_initializer()
@@ -64,6 +71,16 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
         self.last_state = None
         self.last_action = None
 
+    def reset(self):
+        """Handle the beginning of new episodes."""
+        super(DQNPlayerRelativeMoveScreen, self).reset()
+        self.episode_steps = 0
+
+        self.last_state = None
+        self.last_action = None
+
+        self.epsilon *= self.epsilon_episode_decay_factor**self.episodes
+
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
         super(DQNPlayerRelativeMoveScreen, self).step(obs)
@@ -76,14 +93,17 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
             if len(self.memory) > self.batch_size:
                 self._train_network()
 
-            self.memory.add(
-                (self.last_state,
-                 self.last_action,
-                 obs.reward,
-                 state))
+            if self.last_state is not None:
+                self.memory.add(
+                    (self.last_state,
+                     self.last_action,
+                     obs.reward,
+                     state))
 
             self.last_state = state
-            self.last_action = (x, y)
+            self.last_action = np.ravel_multi_index(
+                (x, y),
+                feature_screen_size)
 
             return FUNCTIONS.Move_screen("now", (x, y))
         else:
@@ -104,10 +124,10 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
                 [None, np.prod(feature_screen_size)],
                 name='actions')
 
-            self.target = tf.placeholder(
+            self.targets = tf.placeholder(
                 tf.float32,
                 [None],
-                name='target')
+                name='targets')
 
             # embed layer (one-hot in channel dimension, 1x1 convolution)
             # the player_relative feature layer has 5 categorical values
@@ -201,14 +221,15 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
                 axis=1)
 
             self.loss = tf.reduce_mean(
-                tf.square(self.target - self.predicted_Q))
+                tf.square(self.targets - self.predicted_Q))
 
             self.optimizer = tf.train.RMSPropOptimizer(
                 self.learning_rate).minimize(self.loss)
 
-    def _epsilon_greedy_action_selection(self, state, decay_rate=0.1):
+    def _epsilon_greedy_action_selection(self, state):
         """Choose action from state with epsilon greedy strategy."""
-        explore_probability = np.exp(-decay_rate * self.episodes)
+        explore_probability = self.epsilon - (self.epsilon_step_decay_amount *
+                                              self.episode_steps)
 
         if explore_probability > np.random.rand():
             x = np.random.randint(0, feature_screen_size[0])
@@ -229,4 +250,26 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
 
     def _train_network(self):
         batch = self.memory.sample(self.batch_size)
-        print(batch)
+        states = np.array([each[0] for each in batch])
+        actions = np.array([each[1] for each in batch])
+        rewards = np.array([each[2] for each in batch])
+        next_states = np.array([each[3] for each in batch])
+
+        # one-hot encode actions
+        actions = np.eye(np.prod(feature_screen_size))[actions]
+
+        # get targets
+        next_outputs = self.sess.run(
+            self.output,
+            feed_dict={self.inputs: next_states})
+
+        targets = [rewards[i] + self.discount_factor * np.max(next_outputs[i])
+                   for i in range(self.batch_size)]
+
+        loss, _ = self.sess.run(
+            [self.loss, self.optimizer],
+            feed_dict={self.inputs: states,
+                       self.actions: actions,
+                       self.targets: targets})
+
+        print(loss)
