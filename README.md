@@ -22,7 +22,7 @@ and extract them to your `StarcraftII/Maps/` directory.
 
 `$ git clone https://github.com/rayheberer/SC2Agents`
 
-`$ python -m pysc2.bin.agent --map CollectMineralShards --agent SC2Agents.dqn_mineral_shards.DeepQMineralShards`
+`$ python -m pysc2.bin.agent --map CollectMineralShards --agent SC2Agents.random.QueueRandomMovements`
 
 ### 5. Watch a Replay
 
