@@ -4,9 +4,19 @@ These agents interface directly with Deepmind's [PySC2](https://github.com/deepm
 
 ## Usage
 
-### 1. Get PySC2
+### 1. Get PySC2 and other Dependencies
 
-`$ pip install pysc2`
+To ensure that the version is compatible with the agents in this repository, I recommend using [Pipenv](https://docs.pipenv.org/).
+
+```
+$ pip install pipenv
+
+$ git clone https://github.com/rayheberer/SC2Agents.git
+
+$ cd SC2Agents
+
+$ pipenv install
+```
 
 ### 2. Install StarCraft II
 
@@ -20,9 +30,11 @@ and extract them to your `StarcraftII/Maps/` directory.
 
 ### 4. Run an Agent
 
-`$ git clone https://github.com/rayheberer/SC2Agents`
+```
+$ git clone https://github.com/rayheberer/SC2Agents
 
-`$ python -m pysc2.bin.agent --map CollectMineralShards --agent SC2Agents.random.QueueRandomMovements`
+$ python -m pysc2.bin.agent --map CollectMineralShards --agent SC2Agents.random.QueueRandomMovements
+```
 
 ### 5. Watch a Replay
 
