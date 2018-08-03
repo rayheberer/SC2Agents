@@ -57,14 +57,12 @@ class DQNMoveOnly(base_agent.BaseAgent):
     def __init__(self):
         """Initialize rewards/episodes/steps, build network."""
         super(DQNMoveOnly, self).__init__()
-        self.episode_steps = 0
 
         # hyperparameters TODO: set these using flags
         self.learning_rate = FLAGS.learning_rate
         self.discount_factor = 0.9
         self.epsilon = 1
-        self.epsilon_step_decay_amount = 0.01
-        self.epsilon_episode_decay_factor = 0.9
+        self.epsilon_decay_factor = 0.9
 
         self.train_every = 50
 
@@ -96,12 +94,11 @@ class DQNMoveOnly(base_agent.BaseAgent):
     def reset(self):
         """Handle the beginning of new episodes."""
         super(DQNMoveOnly, self).reset()
-        self.episode_steps = 0
 
         self.last_state = None
         self.last_action = None
 
-        self.epsilon *= self.epsilon_episode_decay_factor**self.episodes
+        self.epsilon *= self.epsilon_decay_factor
 
         # don't do anything else for 1st episode
         if self.episodes <= 1:
@@ -151,10 +148,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
     def _epsilon_greedy_action_selection(self, state):
         """Choose action from state with epsilon greedy strategy."""
-        explore_probability = self.epsilon - (self.epsilon_step_decay_amount *
-                                              self.episode_steps)
-
-        if explore_probability > np.random.rand():
+        if self.epsilon > np.random.rand():
             x = np.random.randint(0, feature_screen_size[0])
             y = np.random.randint(0, feature_screen_size[1])
 
