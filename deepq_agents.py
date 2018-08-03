@@ -42,12 +42,12 @@ class Memory(object):
         return len(self.buffer)
 
 
-class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
+class DQNMoveOnly(base_agent.BaseAgent):
     """A DQN that receives `player_relative` features and takes movements."""
 
     def __init__(self):
         """Initialize rewards/episodes/steps, build network."""
-        super(DQNPlayerRelativeMoveScreen, self).__init__()
+        super(DQNMoveOnly, self).__init__()
         self.episode_steps = 0
 
         # hyperparameters TODO: set these using flags
@@ -71,9 +71,18 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
         self.last_state = None
         self.last_action = None
 
+        # setup summary writer
+        self.writer = tf.summary.FileWriter("/tensorboard/DQNMoveOnly")
+        tf.summary.scalar("Loss", self.loss)
+        self.write_op = tf.summary.merge_all()
+
+        # setup model saver
+        self.saver = tf.train.Saver()
+        self.save_path = "./models/DQNPlayerRelativeMoveScreen.ckpt"
+
     def reset(self):
         """Handle the beginning of new episodes."""
-        super(DQNPlayerRelativeMoveScreen, self).reset()
+        super(DQNMoveOnly, self).reset()
         self.episode_steps = 0
 
         self.last_state = None
@@ -81,9 +90,13 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
 
         self.epsilon *= self.epsilon_episode_decay_factor**self.episodes
 
+        # save current model
+        self.saver.save(self.sess, self.save_path)
+        print("Model Saved")
+
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
-        super(DQNPlayerRelativeMoveScreen, self).step(obs)
+        super(DQNMoveOnly, self).step(obs)
 
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
             # predict an action to take and take it
@@ -231,4 +244,11 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
                        self.actions: actions,
                        self.targets: targets})
 
-        print(loss)
+        # write summaries
+        summary = self.sess.run(
+            self.write_op,
+            feed_dict={self.inputs: states,
+                       self.actions: actions,
+                       self.targets: targets})
+        self.writer.add_summary(summary, self.episode)
+        self.writer.flush()
