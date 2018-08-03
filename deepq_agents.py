@@ -7,13 +7,22 @@ from absl import flags
 from collections import deque
 
 from pysc2.agents import base_agent
-from pysc2.lib import actions
+from pysc2.lib import actions as sc2_actions
 
 FLAGS = flags.FLAGS
+
+# agent interface settings (defaults specified in pysc2.bin.agent)
 feature_screen_size = FLAGS.feature_screen_size
 feature_minimap_size = FLAGS.feature_minimap_size
 
-FUNCTIONS = actions.FUNCTIONS
+# neural network hyperparameters
+flags.DEFINE_float("learning_rate", 0.0001, "Learning rate.")
+
+# agent hyperparameters
+
+# run settings
+
+FUNCTIONS = sc2_actions.FUNCTIONS
 
 
 class Memory(object):
@@ -51,13 +60,14 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.episode_steps = 0
 
         # hyperparameters TODO: set these using flags
-        self.learning_rate = 0.0001  # larger learning rates explode gradients
+        self.learning_rate = FLAGS.learning_rate
         self.discount_factor = 0.9
         self.epsilon = 1
         self.epsilon_step_decay_amount = 0.01
         self.epsilon_episode_decay_factor = 0.9
 
         # build network, and initialize session
+        tf.reset_default_graph()
         self._build_network()
 
         init_op = tf.global_variables_initializer()
@@ -74,6 +84,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
         # setup summary writer
         self.writer = tf.summary.FileWriter("/tensorboard/DQNMoveOnly")
         tf.summary.scalar("Loss", self.loss)
+        tf.summary.scalar("Score", self.reward)
         self.write_op = tf.summary.merge_all()
 
         # setup model saver
@@ -90,9 +101,23 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
         self.epsilon *= self.epsilon_episode_decay_factor**self.episodes
 
+        # don't do anything else for 1st episode
+        if self.episodes <= 1:
+            return
         # save current model
         self.saver.save(self.sess, self.save_path)
         print("Model Saved")
+
+        # write summaries
+        states, actions, targets = self._get_batch()
+        summary = self.sess.run(
+            self.write_op,
+            feed_dict={self.inputs: states,
+                       self.actions: actions,
+                       self.targets: targets})
+        self.writer.add_summary(summary, self.episodes)
+        self.writer.flush()
+        print("Summary Written")
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
@@ -121,6 +146,57 @@ class DQNMoveOnly(base_agent.BaseAgent):
             return FUNCTIONS.Move_screen("now", (x, y))
         else:
             return FUNCTIONS.select_army("select")
+
+    def _epsilon_greedy_action_selection(self, state):
+        """Choose action from state with epsilon greedy strategy."""
+        explore_probability = self.epsilon - (self.epsilon_step_decay_amount *
+                                              self.episode_steps)
+
+        if explore_probability > np.random.rand():
+            x = np.random.randint(0, feature_screen_size[0])
+            y = np.random.randint(0, feature_screen_size[1])
+
+            return x, y
+
+        else:
+            inputs = np.expand_dims(state, 0)
+
+            q_values = self.sess.run(
+                self.output,
+                feed_dict={self.inputs: inputs})
+
+            max_index = np.argmax(q_values)
+            x, y = np.unravel_index(max_index, feature_screen_size)
+            return x, y
+
+    def _train_network(self):
+        states, actions, targets = self._get_batch()
+
+        loss, _ = self.sess.run(
+            [self.loss, self.optimizer],
+            feed_dict={self.inputs: states,
+                       self.actions: actions,
+                       self.targets: targets})
+
+    def _get_batch(self):
+        batch = self.memory.sample(self.batch_size)
+        states = np.array([each[0] for each in batch])
+        actions = np.array([each[1] for each in batch])
+        rewards = np.array([each[2] for each in batch])
+        next_states = np.array([each[3] for each in batch])
+
+        # one-hot encode actions
+        actions = np.eye(np.prod(feature_screen_size))[actions]
+
+        # get targets
+        next_outputs = self.sess.run(
+            self.output,
+            feed_dict={self.inputs: next_states})
+
+        targets = [rewards[i] + self.discount_factor * np.max(next_outputs[i])
+                   for i in range(self.batch_size)]
+
+        return states, actions, targets
 
     def _build_network(self):
         """CNN used to approximate Q table with screen features."""
@@ -163,7 +239,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 inputs=self.embed,
                 filters=64,
                 kernel_size=[3, 3],
-                strides=[1, 1],
+                strides=[2, 2],
                 padding='SAME',
                 name='conv1')
 
@@ -197,58 +273,3 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
             self.optimizer = tf.train.RMSPropOptimizer(
                 self.learning_rate).minimize(self.loss)
-
-    def _epsilon_greedy_action_selection(self, state):
-        """Choose action from state with epsilon greedy strategy."""
-        explore_probability = self.epsilon - (self.epsilon_step_decay_amount *
-                                              self.episode_steps)
-
-        if explore_probability > np.random.rand():
-            x = np.random.randint(0, feature_screen_size[0])
-            y = np.random.randint(0, feature_screen_size[1])
-
-            return x, y
-
-        else:
-            inputs = np.expand_dims(state, 0)
-
-            q_values = self.sess.run(
-                self.output,
-                feed_dict={self.inputs: inputs})
-
-            max_index = np.argmax(q_values)
-            x, y = np.unravel_index(max_index, feature_screen_size)
-            return x, y
-
-    def _train_network(self):
-        batch = self.memory.sample(self.batch_size)
-        states = np.array([each[0] for each in batch])
-        actions = np.array([each[1] for each in batch])
-        rewards = np.array([each[2] for each in batch])
-        next_states = np.array([each[3] for each in batch])
-
-        # one-hot encode actions
-        actions = np.eye(np.prod(feature_screen_size))[actions]
-
-        # get targets
-        next_outputs = self.sess.run(
-            self.output,
-            feed_dict={self.inputs: next_states})
-
-        targets = [rewards[i] + self.discount_factor * np.max(next_outputs[i])
-                   for i in range(self.batch_size)]
-
-        loss, _ = self.sess.run(
-            [self.loss, self.optimizer],
-            feed_dict={self.inputs: states,
-                       self.actions: actions,
-                       self.targets: targets})
-
-        # write summaries
-        summary = self.sess.run(
-            self.write_op,
-            feed_dict={self.inputs: states,
-                       self.actions: actions,
-                       self.targets: targets})
-        self.writer.add_summary(summary, self.episode)
-        self.writer.flush()
