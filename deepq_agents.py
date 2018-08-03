@@ -1,5 +1,6 @@
 """Deep Q-learning agents."""
 import numpy as np
+import os
 import tensorflow as tf
 
 from absl import flags
@@ -17,11 +18,27 @@ feature_minimap_size = FLAGS.feature_minimap_size
 
 # neural network hyperparameters
 flags.DEFINE_float("learning_rate", 0.0001, "Learning rate.")
+flags.DEFINE_float("discount_factor", 0.9, "Discount factor.")
 
 # agent hyperparameters
+flags.DEFINE_float("epsilon", 1, "Initial exploration probability.")
+flags.DEFINE_float("epsilon_decay_factor", 0.9, "Epsilon decay multiplier.")
+flags.DEFINE_integer("train_every", 1, "Steps between training batches.")
+
+flags.DEFINE_integer("max_memory", 1024, "Experience Replay buffer size.")
+flags.DEFINE_integer("batch_size", 32, "Training batch size.")
 
 # run settings
+flags.DEFINE_string(
+    "save_dir",
+    "./checkpoints/deepq_agents/",
+    "Model checkpoint save directory.")
+flags.DEFINE_string(
+    "summary_path",
+    "./tensorboard/deepq_agents/",
+    "Tensorboard summary write path.")
 
+# pysc2 convenience
 FUNCTIONS = sc2_actions.FUNCTIONS
 
 
@@ -60,36 +77,40 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
         # hyperparameters TODO: set these using flags
         self.learning_rate = FLAGS.learning_rate
-        self.discount_factor = 0.9
-        self.epsilon = 1
-        self.epsilon_decay_factor = 0.9
+        self.discount_factor = FLAGS.discount_factor
+        self.epsilon = FLAGS.epsilon
+        self.epsilon_decay_factor = FLAGS.epsilon_decay_factor
 
-        self.train_every = 50
+        self.train_every = FLAGS.train_every
 
-        # build network, and initialize session
+        # build network
         tf.reset_default_graph()
         self._build_network()
 
-        init_op = tf.global_variables_initializer()
-        self.sess = tf.Session()
-        self.sess.run(init_op)
-
         # initialize Experience Replay memory buffer
-        self.memory = Memory(1024)
-        self.batch_size = 16
+        self.memory = Memory(FLAGS.max_memory)
+        self.batch_size = FLAGS.batch_size
 
         self.last_state = None
         self.last_action = None
 
         # setup summary writer
-        self.writer = tf.summary.FileWriter("./tensorboard/DQNMoveOnly")
+        self.writer = tf.summary.FileWriter(FLAGS.summary_path)
         tf.summary.scalar("Loss", self.loss)
         tf.summary.scalar("Score", self.reward)
         self.write_op = tf.summary.merge_all()
 
         # setup model saver
         self.saver = tf.train.Saver()
-        self.save_path = "./models/DQNPlayerRelativeMoveScreen.ckpt"
+        self.save_path = FLAGS.save_dir + "DQNPlayerRelativeMoveScreen.ckpt"
+
+        # initialize session
+        self.sess = tf.Session()
+        if os.path.isfile(self.save_path + ".index"):
+            self.saver.restore(self.sess, self.save_path)
+        else:
+            init_op = tf.global_variables_initializer()
+            self.sess.run(init_op)
 
     def reset(self):
         """Handle the beginning of new episodes."""
@@ -127,7 +148,8 @@ class DQNMoveOnly(base_agent.BaseAgent):
             state = obs.observation.feature_screen.player_relative
             x, y = self._epsilon_greedy_action_selection(state)
 
-            if self.steps % self.train_every == 0:
+            if (self.steps % self.train_every == 0 and
+                    len(self.memory) > self.batch_size):
                 self._train_network()
 
             if self.last_state is not None:
@@ -215,6 +237,12 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 tf.float32,
                 [None],
                 name='targets')
+
+            # global step to keep track of multiple runs restoring from ckpt
+            self.global_step = tf.Variable(
+                0,
+                trainable=False,
+                name='global_step')
 
             # embed layer (one-hot in channel dimension, 1x1 convolution)
             # the player_relative feature layer has 5 categorical values
