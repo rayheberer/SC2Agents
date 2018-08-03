@@ -82,7 +82,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.last_action = None
 
         # setup summary writer
-        self.writer = tf.summary.FileWriter("/tensorboard/DQNMoveOnly")
+        self.writer = tf.summary.FileWriter("./tensorboard/DQNMoveOnly")
         tf.summary.scalar("Loss", self.loss)
         tf.summary.scalar("Score", self.reward)
         self.write_op = tf.summary.merge_all()
