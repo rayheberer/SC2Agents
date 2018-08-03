@@ -50,8 +50,8 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
         super(DQNPlayerRelativeMoveScreen, self).__init__()
         self.episode_steps = 0
 
-        # hyperparameters
-        self.learning_rate = 0.0001  # larger learning rates explode
+        # hyperparameters TODO: set these using flags
+        self.learning_rate = 0.0001  # larger learning rates explode gradients
         self.discount_factor = 0.9
         self.epsilon = 1
         self.epsilon_step_decay_amount = 0.01
@@ -145,66 +145,25 @@ class DQNPlayerRelativeMoveScreen(base_agent.BaseAgent):
                 padding='VALID',
                 name='embed')
 
-            # first convolutional layer
+            # convolutional layer
             self.conv1 = tf.layers.conv2d(
                 inputs=self.embed,
-                filters=32,
-                kernel_size=[8, 8],
-                strides=[4, 4],
+                filters=64,
+                kernel_size=[3, 3],
+                strides=[1, 1],
                 padding='SAME',
                 name='conv1')
 
-            self.conv1_batchnorm = tf.layers.batch_normalization(
-                self.conv1,
-                training=True,
-                name='conv1_batchnorm')
-
             self.conv1_activation = tf.nn.elu(
-                self.conv1_batchnorm,
+                self.conv1,
                 name='conv1_activation')
 
-            # second convolutional layer
-            self.conv2 = tf.layers.conv2d(
-                inputs=self.conv1_activation,
-                filters=64,
-                kernel_size=[4, 4],
-                strides=[2, 2],
-                padding='SAME',
-                name='conv2')
-
-            self.conv2_batchnorm = tf.layers.batch_normalization(
-                self.conv2,
-                training=True,
-                name='conv2_batchnorm')
-
-            self.conv2_activation = tf.nn.elu(
-                self.conv2_batchnorm,
-                name='conv2_activation')
-
-            # third convolutional layer
-            self.conv3 = tf.layers.conv2d(
-                inputs=self.conv2_activation,
-                filters=128,
-                kernel_size=[4, 4],
-                strides=[2, 2],
-                padding='SAME',
-                name='conv3')
-
-            self.conv3_batchnorm = tf.layers.batch_normalization(
-                self.conv3,
-                training=True,
-                name='conv3_batchnorm')
-
-            self.conv3_activation = tf.nn.elu(
-                self.conv3_batchnorm,
-                name='conv3_activation')
-
             # output layers
-            self.flatten = tf.layers.flatten(self.conv3_activation)
+            self.flatten = tf.layers.flatten(self.conv1_activation)
 
             self.dense = tf.layers.dense(
                 inputs=self.flatten,
-                units=512,
+                units=256,
                 activation=tf.nn.elu,
                 name='fully_connected')
 
