@@ -21,12 +21,13 @@ flags.DEFINE_float("learning_rate", 0.0001, "Learning rate.")
 flags.DEFINE_float("discount_factor", 0.9, "Discount factor.")
 
 # agent hyperparameters
-flags.DEFINE_float("epsilon", 1, "Initial exploration probability.")
-flags.DEFINE_float("epsilon_decay_factor", 0.9, "Epsilon decay multiplier.")
+flags.DEFINE_float("epsilon_max", 1, "Initial exploration probability.")
+flags.DEFINE_float("epsilon_min", 0.1, "Final exploration probability.")
+flags.DEFINE_integer("epsilon_decay_steps", 2000000, "Steps for linear decay.")
 flags.DEFINE_integer("train_every", 1, "Steps between training batches.")
 
 flags.DEFINE_integer("max_memory", 1024, "Experience Replay buffer size.")
-flags.DEFINE_integer("batch_size", 32, "Training batch size.")
+flags.DEFINE_integer("batch_size", 8, "Training batch size.")
 
 # run settings
 flags.DEFINE_string(
@@ -78,8 +79,9 @@ class DQNMoveOnly(base_agent.BaseAgent):
         # hyperparameters TODO: set these using flags
         self.learning_rate = FLAGS.learning_rate
         self.discount_factor = FLAGS.discount_factor
-        self.epsilon = FLAGS.epsilon
-        self.epsilon_decay_factor = FLAGS.epsilon_decay_factor
+        self.epsilon_max = FLAGS.epsilon_max
+        self.epsilon_min = FLAGS.epsilon_min
+        self.epsilon_decay_steps = FLAGS.epsilon_decay_steps
 
         self.train_every = FLAGS.train_every
 
@@ -118,8 +120,6 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
         self.last_state = None
         self.last_action = None
-
-        self.epsilon *= self.epsilon_decay_factor
 
         # don't do anything else for 1st episode
         if self.episodes <= 1:
@@ -170,7 +170,13 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
     def _epsilon_greedy_action_selection(self, state):
         """Choose action from state with epsilon greedy strategy."""
-        if self.epsilon > np.random.rand():
+        step = self.global_step.eval(session=self.sess)
+        epsilon = max(
+            self.epsilon_min,
+            (self.epsilon_max - ((self.epsilon_max - self.epsilon_min) *
+                                 step / self.epsilon_decay_steps)))
+
+        if epsilon > np.random.rand():
             x = np.random.randint(0, feature_screen_size[0])
             y = np.random.randint(0, feature_screen_size[1])
 
@@ -195,8 +201,6 @@ class DQNMoveOnly(base_agent.BaseAgent):
             feed_dict={self.inputs: states,
                        self.actions: actions,
                        self.targets: targets})
-
-        print("Neural Network Loss:", loss)
 
     def _get_batch(self):
         batch = self.memory.sample(self.batch_size)
@@ -298,4 +302,5 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 tf.square(self.targets - self.predicted_Q))
 
             self.optimizer = tf.train.RMSPropOptimizer(
-                self.learning_rate).minimize(self.loss)
+                self.learning_rate).minimize(self.loss,
+                                             global_step=self.global_step)
