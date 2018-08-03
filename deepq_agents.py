@@ -66,6 +66,8 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.epsilon_step_decay_amount = 0.01
         self.epsilon_episode_decay_factor = 0.9
 
+        self.train_every = 50
+
         # build network, and initialize session
         tf.reset_default_graph()
         self._build_network()
@@ -128,7 +130,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             state = obs.observation.feature_screen.player_relative
             x, y = self._epsilon_greedy_action_selection(state)
 
-            if len(self.memory) > self.batch_size:
+            if self.steps % self.train_every == 0:
                 self._train_network()
 
             if self.last_state is not None:
@@ -177,6 +179,8 @@ class DQNMoveOnly(base_agent.BaseAgent):
             feed_dict={self.inputs: states,
                        self.actions: actions,
                        self.targets: targets})
+
+        print("Neural Network Loss:", loss)
 
     def _get_batch(self):
         batch = self.memory.sample(self.batch_size)
