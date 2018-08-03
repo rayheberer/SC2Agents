@@ -37,7 +37,7 @@ $ python -m pysc2.bin.agent --map CollectMineralShards --agent deepq_agents.DQNM
 ### 5. View Metrics on Tensorboard
 
 ```
-$ tensorboard --logdir=/tensorboard/DQNMoveOnly/
+$ tensorboard --logdir=./tensorboard/deepq
 ```
 
 ### 6. Watch a Replay

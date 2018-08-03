@@ -36,7 +36,7 @@ flags.DEFINE_string(
     "Model checkpoint save directory.")
 flags.DEFINE_string(
     "summary_path",
-    "./tensorboard/",
+    "./tensorboard/deepq/",
     "Tensorboard summary write path.")
 
 # pysc2 convenience
@@ -101,7 +101,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
         # setup summary writer
         self.writer = tf.summary.FileWriter(FLAGS.summary_path)
         tf.summary.scalar("Loss", self.loss)
-        tf.summary.scalar("Score", self.reward)
+        tf.summary.scalar("Score", self.score)
         self.write_op = tf.summary.merge_all()
 
         # setup model saver
@@ -118,32 +118,42 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
     def reset(self):
         """Handle the beginning of new episodes."""
-        super(DQNMoveOnly, self).reset()
+        self.episodes += 1
+        self.sess.run(self.increment_global_episode)
+        score = self.reward
+        self.reward = 0
 
         self.last_state = None
         self.last_action = None
 
-        # don't do anything else for 1st episode
-        if self.episodes <= 1:
-            return
-        # save current model
-        self.saver.save(self.sess, self.save_path)
-        print("Model Saved")
+        global_episodes = self.global_episodes.eval(session=self.sess)
 
-        # write summaries
-        states, actions, targets = self._get_batch()
-        summary = self.sess.run(
-            self.write_op,
-            feed_dict={self.inputs: states,
-                       self.actions: actions,
-                       self.targets: targets})
-        self.writer.add_summary(summary, self.episodes)
-        self.writer.flush()
-        print("Summary Written")
+        # don't do anything else for 1st episode
+        if self.episodes >= 1:
+
+            # save current model
+            self.saver.save(self.sess, self.save_path)
+            print("Model Saved")
+
+            # write summaries from last episode
+            states, actions, targets = self._get_batch()
+            summary = self.sess.run(
+                self.write_op,
+                feed_dict={self.inputs: states,
+                           self.actions: actions,
+                           self.targets: targets,
+                           self.score: score})
+
+            self.writer.add_summary(summary, global_episodes - 1)
+            self.writer.flush()
+            print("Summary Written")
+
+        print("Global Episode:", global_episodes)
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
-        super(DQNMoveOnly, self).step(obs)
+        self.steps += 1
+        self.reward += obs.reward
 
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
             # predict an action to take and take it
@@ -244,11 +254,25 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 [None],
                 name='targets')
 
-            # global step to keep track of multiple runs restoring from ckpt
+            # score tracker
+            self.score = tf.placeholder(
+                tf.int32,
+                [],
+                name='score')
+
+            # global step trackers for multiple runs restoring from ckpt
             self.global_step = tf.Variable(
                 0,
                 trainable=False,
                 name='global_step')
+
+            self.global_episodes = tf.Variable(
+                0,
+                trainable=False,
+                name='global_episodes')
+
+            self.increment_global_episode = tf.assign(self.global_episodes,
+                                                      self.global_episodes + 1)
 
             # embed layer (one-hot in channel dimension, 1x1 convolution)
             # the player_relative feature layer has 5 categorical values
@@ -301,7 +325,8 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 axis=1)
 
             self.loss = tf.reduce_mean(
-                tf.square(self.targets - self.predicted_Q))
+                tf.square(self.targets - self.predicted_Q),
+                name='loss')
 
             self.optimizer = tf.train.RMSPropOptimizer(
                 self.learning_rate).minimize(self.loss,
