@@ -129,7 +129,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
         global_episodes = self.global_episodes.eval(session=self.sess)
 
         # don't do anything else for 1st episode
-        if self.episodes >= 1:
+        if self.episodes > 1:
 
             # save current model
             self.saver.save(self.sess, self.save_path)
@@ -148,7 +148,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             self.writer.flush()
             print("Summary Written")
 
-        print("Global Episode:", global_episodes)
+        print("Starting Global Episode", global_episodes)
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
