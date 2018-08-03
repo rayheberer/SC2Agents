@@ -24,7 +24,7 @@ flags.DEFINE_float("discount_factor", 0.9, "Discount factor.")
 flags.DEFINE_float("epsilon_max", 1, "Initial exploration probability.")
 flags.DEFINE_float("epsilon_min", 0.1, "Final exploration probability.")
 flags.DEFINE_integer("epsilon_decay_steps", 2000000, "Steps for linear decay.")
-flags.DEFINE_integer("train_every", 200, "Steps between training batches.")
+flags.DEFINE_integer("train_every", 1, "Steps between training batches.")
 
 flags.DEFINE_integer("max_memory", 1024, "Experience Replay buffer size.")
 flags.DEFINE_integer("batch_size", 8, "Training batch size.")
