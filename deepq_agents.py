@@ -24,7 +24,7 @@ flags.DEFINE_float("discount_factor", 0.9, "Discount factor.")
 flags.DEFINE_float("epsilon_max", 1, "Initial exploration probability.")
 flags.DEFINE_float("epsilon_min", 0.1, "Final exploration probability.")
 flags.DEFINE_integer("epsilon_decay_steps", 2000000, "Steps for linear decay.")
-flags.DEFINE_integer("train_every", 1, "Steps between training batches.")
+flags.DEFINE_integer("train_every", 200, "Steps between training batches.")
 
 flags.DEFINE_integer("max_memory", 1024, "Experience Replay buffer size.")
 flags.DEFINE_integer("batch_size", 8, "Training batch size.")
@@ -32,11 +32,11 @@ flags.DEFINE_integer("batch_size", 8, "Training batch size.")
 # run settings
 flags.DEFINE_string(
     "save_dir",
-    "./checkpoints/deepq_agents/",
+    "./checkpoints/",
     "Model checkpoint save directory.")
 flags.DEFINE_string(
     "summary_path",
-    "./tensorboard/deepq_agents/",
+    "./tensorboard/",
     "Tensorboard summary write path.")
 
 # pysc2 convenience
@@ -86,8 +86,10 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.train_every = FLAGS.train_every
 
         # build network
+        print("Building model...")
         tf.reset_default_graph()
         self._build_network()
+        print("Done.")
 
         # initialize Experience Replay memory buffer
         self.memory = Memory(FLAGS.max_memory)

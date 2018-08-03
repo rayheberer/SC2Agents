@@ -31,9 +31,7 @@ and extract them to your `StarcraftII/Maps/` directory.
 ### 4. Train an Agent
 
 ```
-$ git clone https://github.com/rayheberer/SC2Agents
-
-$ python -m pysc2.bin.agent --map CollectMineralShards --agent SC2Agents.deepq_agents.DQNMoveOnly
+$ python -m pysc2.bin.agent --map CollectMineralShards --agent deepq_agents.DQNMoveOnly
 ```
 
 ### 5. View Metrics on Tensorboard
