@@ -23,11 +23,11 @@ flags.DEFINE_float("discount_factor", 0.9, "Discount factor.")
 # agent hyperparameters
 flags.DEFINE_float("epsilon_max", 1, "Initial exploration probability.")
 flags.DEFINE_float("epsilon_min", 0.1, "Final exploration probability.")
-flags.DEFINE_integer("epsilon_decay_steps", 2000000, "Steps for linear decay.")
+flags.DEFINE_integer("epsilon_decay_steps", 250000, "Steps for linear decay.")
 flags.DEFINE_integer("train_every", 1, "Steps between training batches.")
 
-flags.DEFINE_integer("max_memory", 1024, "Experience Replay buffer size.")
-flags.DEFINE_integer("batch_size", 8, "Training batch size.")
+flags.DEFINE_integer("max_memory", 2048, "Experience Replay buffer size.")
+flags.DEFINE_integer("batch_size", 16, "Training batch size.")
 
 # run settings
 flags.DEFINE_string(
@@ -158,7 +158,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
             # predict an action to take and take it
             state = obs.observation.feature_screen.player_relative
-            x, y = self._epsilon_greedy_action_selection(state)
+            x, y, select_type = self._epsilon_greedy_action_selection(state)
 
             if (self.steps % self.train_every == 0 and
                     len(self.memory) > self.batch_size):
@@ -176,7 +176,11 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 (x, y),
                 feature_screen_size)
 
-            return FUNCTIONS.Move_screen("now", (x, y))
+            # cosmetic difference between random and network selected actions
+            if select_type == 'random':
+                return FUNCTIONS.Move_screen("now", (x, y))
+            else:
+                return FUNCTIONS.Attack_screen("now", (x, y))
         else:
             return FUNCTIONS.select_army("select")
 
@@ -192,7 +196,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             x = np.random.randint(0, feature_screen_size[0])
             y = np.random.randint(0, feature_screen_size[1])
 
-            return x, y
+            return x, y, 'random'
 
         else:
             inputs = np.expand_dims(state, 0)
@@ -203,7 +207,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
             max_index = np.argmax(q_values)
             x, y = np.unravel_index(max_index, feature_screen_size)
-            return x, y
+            return x, y, 'max_q'
 
     def _train_network(self):
         states, actions, targets = self._get_batch()
