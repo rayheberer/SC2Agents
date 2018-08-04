@@ -17,13 +17,13 @@ feature_screen_size = FLAGS.feature_screen_size
 feature_minimap_size = FLAGS.feature_minimap_size
 
 # neural network hyperparameters
-flags.DEFINE_float("learning_rate", 0.0001, "Learning rate.")
-flags.DEFINE_float("discount_factor", 0.9, "Discount factor.")
+flags.DEFINE_float("learning_rate", 0.00001, "Learning rate.")
+flags.DEFINE_float("discount_factor", 1.0, "Discount factor.")
 
 # agent hyperparameters
 flags.DEFINE_float("epsilon_max", 1, "Initial exploration probability.")
-flags.DEFINE_float("epsilon_min", 0.1, "Final exploration probability.")
-flags.DEFINE_integer("epsilon_decay_steps", 250000, "Steps for linear decay.")
+flags.DEFINE_float("epsilon_min", 0.02, "Final exploration probability.")
+flags.DEFINE_integer("epsilon_decay_steps", 100000, "Steps for linear decay.")
 flags.DEFINE_integer("train_every", 1, "Steps between training batches.")
 
 flags.DEFINE_integer("max_memory", 2048, "Experience Replay buffer size.")
@@ -156,9 +156,13 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.reward += obs.reward
 
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
-            # predict an action to take and take it
             state = obs.observation.feature_screen.player_relative
-            x, y, select_type = self._epsilon_greedy_action_selection(state)
+            # spatial coordinates are given in y-major screen coordinate space
+            # transpose them to (x, y) space before beginning
+            state = np.transpose(state)
+
+            # predict an action to take and take it
+            x, y = self._epsilon_greedy_action_selection(state)
 
             if (self.steps % self.train_every == 0 and
                     len(self.memory) > self.batch_size):
@@ -176,11 +180,8 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 (x, y),
                 feature_screen_size)
 
-            # cosmetic difference between random and network selected actions
-            if select_type == 'random':
-                return FUNCTIONS.Move_screen("now", (x, y))
-            else:
-                return FUNCTIONS.Attack_screen("now", (x, y))
+            return FUNCTIONS.Move_screen("now", (x, y))
+
         else:
             return FUNCTIONS.select_army("select")
 
@@ -196,7 +197,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             x = np.random.randint(0, feature_screen_size[0])
             y = np.random.randint(0, feature_screen_size[1])
 
-            return x, y, 'random'
+            return x, y
 
         else:
             inputs = np.expand_dims(state, 0)
@@ -207,7 +208,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
             max_index = np.argmax(q_values)
             x, y = np.unravel_index(max_index, feature_screen_size)
-            return x, y, 'max_q'
+            return x, y
 
     def _train_network(self):
         states, actions, targets = self._get_batch()
@@ -294,38 +295,47 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 padding='VALID',
                 name='embed')
 
-            # convolutional layer
+            # convolutional layer 1
             self.conv1 = tf.layers.conv2d(
                 inputs=self.embed,
-                filters=64,
-                kernel_size=[3, 3],
-                strides=[2, 2],
+                filters=16,
+                kernel_size=[5, 5],
+                strides=[1, 1],
                 padding='SAME',
                 name='conv1')
 
-            self.conv1_activation = tf.nn.elu(
+            self.conv1_activation = tf.nn.relu(
                 self.conv1,
                 name='conv1_activation')
 
-            # output layers
-            self.flatten = tf.layers.flatten(self.conv1_activation)
+            # convolutional layer 2
+            self.conv2 = tf.layers.conv2d(
+                inputs=self.conv1_activation,
+                filters=32,
+                kernel_size=[3, 3],
+                strides=[1, 1],
+                padding='SAME',
+                name='conv2')
 
-            self.dense = tf.layers.dense(
-                inputs=self.flatten,
-                units=256,
-                activation=tf.nn.elu,
-                name='fully_connected')
+            self.conv2_activation = tf.nn.relu(
+                self.conv2,
+                name='conv2_activation')
+
+            # spacial output layer
+            self.output = tf.layers.conv2d(
+                inputs=self.conv1_activation,
+                filters=1,
+                kernel_size=[1, 1],
+                strides=[1, 1],
+                padding='SAME',
+                name='output')
 
             # output shape: (1, feature_screen_size[0]*feature_screen_size[1])
-            self.output = tf.layers.dense(
-                inputs=self.dense,
-                units=np.prod(feature_screen_size),
-                activation=None,
-                name='output')
+            self.flatten = tf.layers.flatten(self.output)
 
             # optimization: RMSE between state predicted Q and target Q
             self.predicted_Q = tf.reduce_sum(
-                tf.multiply(self.output, self.actions),
+                tf.multiply(self.flatten, self.actions),
                 axis=1)
 
             self.loss = tf.reduce_mean(
