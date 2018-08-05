@@ -10,8 +10,8 @@ class PlayerRelativeMovementCNN(object):
     def __init__(self,
                  spacial_dimensions,
                  learning_rate,
-                 save_path,
-                 summary_path,
+                 save_path=None,
+                 summary_path=None,
                  name='DQN'):
         """Initialize instance-specific hyperparameters."""
         self.spacial_dimensions = spacial_dimensions
@@ -24,15 +24,17 @@ class PlayerRelativeMovementCNN(object):
         self._build()
 
         # setup summary writer
-        self.writer = tf.summary.FileWriter(summary_path)
-        tf.summary.scalar("Loss", self.loss)
-        tf.summary.scalar("Score", self.score)
-        tf.summary.scalar("Batch Max Q", self.max_q)
-        tf.summary.scalar("Batch Mean Q", self.mean_q)
-        self.write_op = tf.summary.merge_all()
+        if self.summary_path:
+            self.writer = tf.summary.FileWriter(summary_path)
+            tf.summary.scalar("Loss", self.loss)
+            tf.summary.scalar("Score", self.score)
+            tf.summary.scalar("Batch Max Q", self.max_q)
+            tf.summary.scalar("Batch Mean Q", self.mean_q)
+            self.write_op = tf.summary.merge_all()
 
         # setup model saver
-        self.saver = tf.train.Saver()
+        if self.save_path:
+            self.saver = tf.train.Saver()
 
     def save_model(self, sess):
         """Write tensorflow ckpt."""

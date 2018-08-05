@@ -58,32 +58,44 @@ class DQNMoveOnly(base_agent.BaseAgent):
                  epsilon_max=1.0,
                  epsilon_min=0.01,
                  epsilon_decay_steps=100000,
-                 train_every=1,
-                 save_dir="./checkpoints",
+                 train_frequency=1,
+                 target_update_frequency=40,
+                 save_dir="./checkpoints/",
                  ckpt_name="DQNMoveOnly",
                  summary_path="./tensorboard/deepq",
                  max_memory=4096,
-                 batch_size=32):
+                 batch_size=32,
+                 indicate_nonrandom_action=True):
         """Initialize rewards/episodes/steps, build network."""
         super(DQNMoveOnly, self).__init__()
 
-        # hyperparameters
+        # neural net hyperparameters
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
+
+        # agent hyperparameters
         self.epsilon_max = epsilon_max
         self.epsilon_min = epsilon_min
         self.epsilon_decay_steps = epsilon_decay_steps
+        self.train_frequency = train_frequency
+        self.target_update_frequency = target_update_frequency
 
-        self.train_every = train_every
+        # other parameters
+        self.indicate_nonrandom_action = indicate_nonrandom_action
 
         # build network
         self.save_path = save_dir + ckpt_name + ".ckpt"
-        print("Building model...")
+        print("Building models...")
         self.network = nets.PlayerRelativeMovementCNN(
             spacial_dimensions=feature_screen_size,
             learning_rate=self.learning_rate,
             save_path=self.save_path,
             summary_path=summary_path)
+
+        self.target_net = nets.PlayerRelativeMovementCNN(
+            spacial_dimensions=feature_screen_size,
+            learning_rate=self.learning_rate,
+            name='DQNTarget')
         print("Done.")
 
         # initialize Experience Replay memory buffer
@@ -135,12 +147,18 @@ class DQNMoveOnly(base_agent.BaseAgent):
             state = obs.observation.feature_screen.player_relative
 
             # predict an action to take and take it
-            x, y = self._epsilon_greedy_action_selection(state)
+            x, y, action_type = self._epsilon_greedy_action_selection(state)
 
-            if (self.steps % self.train_every == 0 and
+            # update online DQN
+            if (self.steps % self.train_frequency == 0 and
                     len(self.memory) > self.batch_size):
                 self._train_network()
 
+            # update network used to estimate TD targets
+            if self.steps % self.target_update_frequency == 0:
+                self._update_target_network()
+
+            # add experience to memory
             if self.last_state is not None:
                 self.memory.add(
                     (self.last_state,
@@ -153,10 +171,25 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 (x, y),
                 feature_screen_size)
 
-            return FUNCTIONS.Move_screen("now", (x, y))
-
+            if self.indicate_nonrandom_action and action_type == 'nonrandom':
+                # cosmetic difference between random and Q based actions
+                return FUNCTIONS.Attack_screen("now", (x, y))
+            else:
+                return FUNCTIONS.Move_screen("now", (x, y))
         else:
             return FUNCTIONS.select_army("select")
+
+    def _update_target_network(self):
+        online_vars = tf.get_collection(
+            tf.GraphKeys.TRAINABLE_VARIABLES, 'DQN')
+        target_vars = tf.get_collection(
+            tf.GraphKeys.TRAINABLE_VARIABLES, 'DQNTarget')
+
+        update_op = []
+        for online_var, target_var in zip(online_vars, target_vars):
+            update_op.append(target_var.assign(online_var))
+
+        self.sess.run(update_op)
 
     def _epsilon_greedy_action_selection(self, state):
         """Choose action from state with epsilon greedy strategy."""
@@ -170,7 +203,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             x = np.random.randint(0, feature_screen_size[0])
             y = np.random.randint(0, feature_screen_size[1])
 
-            return x, y
+            return x, y, 'random'
 
         else:
             inputs = np.expand_dims(state, 0)
@@ -181,7 +214,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
             max_index = np.argmax(q_values)
             x, y = np.unravel_index(max_index, feature_screen_size)
-            return x, y
+            return x, y, 'nonrandom'
 
     def _train_network(self):
         states, actions, targets = self._get_batch()
@@ -199,8 +232,8 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
         # get targets
         next_outputs = self.sess.run(
-            self.network.output,
-            feed_dict={self.network.inputs: next_states})
+            self.target_net.output,
+            feed_dict={self.target_net.inputs: next_states})
 
         targets = [rewards[i] + self.discount_factor * np.max(next_outputs[i])
                    for i in range(self.batch_size)]
