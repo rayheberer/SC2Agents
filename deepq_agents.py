@@ -86,6 +86,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
         # build network
         self.save_path = save_dir + ckpt_name + ".ckpt"
         print("Building models...")
+        tf.reset_default_graph()
         self.network = nets.PlayerRelativeMovementCNN(
             spacial_dimensions=feature_screen_size,
             learning_rate=self.learning_rate,
@@ -109,8 +110,9 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.sess = tf.Session()
         if os.path.isfile(self.save_path + ".index"):
             self.network.load(self.sess)
+            self._update_target_network()
         else:
-            self.network.run_init_op(self.sess)
+            self._tf_init_op()
 
     def reset(self):
         """Handle the beginning of new episodes."""
@@ -178,6 +180,10 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 return FUNCTIONS.Move_screen("now", (x, y))
         else:
             return FUNCTIONS.select_army("select")
+
+    def _tf_init_op(self):
+        init_op = tf.global_variables_initializer()
+        self.sess.run(init_op)
 
     def _update_target_network(self):
         online_vars = tf.get_collection(

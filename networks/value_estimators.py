@@ -20,16 +20,15 @@ class PlayerRelativeMovementCNN(object):
         self.save_path = save_path
 
         # build graph
-        tf.reset_default_graph()
         self._build()
 
         # setup summary writer
-        if self.summary_path:
+        if summary_path:
             self.writer = tf.summary.FileWriter(summary_path)
             tf.summary.scalar("Loss", self.loss)
             tf.summary.scalar("Score", self.score)
-            tf.summary.scalar("Batch Max Q", self.max_q)
-            tf.summary.scalar("Batch Mean Q", self.mean_q)
+            tf.summary.scalar("Batch_Max_Q", self.max_q)
+            tf.summary.scalar("Batch_Mean_Q", self.mean_q)
             self.write_op = tf.summary.merge_all()
 
         # setup model saver
@@ -109,8 +108,10 @@ class PlayerRelativeMovementCNN(object):
                 [None],
                 name='targets')
 
-            self.increment_global_episode = tf.assign(self.global_episode,
-                                                      self.global_episode + 1)
+            self.increment_global_episode = tf.assign(
+                self.global_episode,
+                self.global_episode + 1,
+                name='increment_global_episode')
 
             # spatial coordinates are given in y-major screen coordinate space
             # transpose them to (x, y) space before beginning
