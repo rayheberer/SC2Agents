@@ -19,29 +19,6 @@ FLAGS = flags.FLAGS
 feature_screen_size = FLAGS.feature_screen_size
 feature_minimap_size = FLAGS.feature_minimap_size
 
-# neural network hyperparameters
-flags.DEFINE_float("learning_rate", 0.00001, "Learning rate.")
-flags.DEFINE_float("discount_factor", 0.99, "Discount factor.")
-
-# agent hyperparameters
-flags.DEFINE_float("epsilon_max", 1, "Initial exploration probability.")
-flags.DEFINE_float("epsilon_min", 0.02, "Final exploration probability.")
-flags.DEFINE_integer("epsilon_decay_steps", 100000, "Steps for linear decay.")
-flags.DEFINE_integer("train_every", 1, "Steps between training batches.")
-
-flags.DEFINE_integer("max_memory", 4096, "Experience Replay buffer size.")
-flags.DEFINE_integer("batch_size", 32, "Training batch size.")
-
-# run settings
-flags.DEFINE_string(
-    "save_dir",
-    "./checkpoints/",
-    "Model checkpoint save directory.")
-flags.DEFINE_string(
-    "summary_path",
-    "./tensorboard/deepq/",
-    "Tensorboard summary write path.")
-
 # pysc2 convenience
 FUNCTIONS = sc2_actions.FUNCTIONS
 
@@ -75,32 +52,43 @@ class Memory(object):
 class DQNMoveOnly(base_agent.BaseAgent):
     """A DQN that receives `player_relative` features and takes movements."""
 
-    def __init__(self):
+    def __init__(self,
+                 learning_rate=1e-6,
+                 discount_factor=0.99,
+                 epsilon_max=1.0,
+                 epsilon_min=0.01,
+                 epsilon_decay_steps=100000,
+                 train_every=1,
+                 save_dir="./checkpoints",
+                 ckpt_name="DQNMoveOnly",
+                 summary_path="./tensorboard/deepq",
+                 max_memory=4096,
+                 batch_size=32):
         """Initialize rewards/episodes/steps, build network."""
         super(DQNMoveOnly, self).__init__()
 
-        # hyperparameters TODO: set these using flags
-        self.learning_rate = FLAGS.learning_rate
-        self.discount_factor = FLAGS.discount_factor
-        self.epsilon_max = FLAGS.epsilon_max
-        self.epsilon_min = FLAGS.epsilon_min
-        self.epsilon_decay_steps = FLAGS.epsilon_decay_steps
+        # hyperparameters
+        self.learning_rate = learning_rate
+        self.discount_factor = discount_factor
+        self.epsilon_max = epsilon_max
+        self.epsilon_min = epsilon_min
+        self.epsilon_decay_steps = epsilon_decay_steps
 
-        self.train_every = FLAGS.train_every
+        self.train_every = train_every
 
         # build network
-        self.save_path = FLAGS.save_dir + "DQNPlayerRelativeMoveScreen.ckpt"
+        self.save_path = save_dir + ckpt_name + ".ckpt"
         print("Building model...")
         self.network = nets.PlayerRelativeMovementCNN(
             spacial_dimensions=feature_screen_size,
             learning_rate=self.learning_rate,
             save_path=self.save_path,
-            summary_path=FLAGS.summary_path)
+            summary_path=summary_path)
         print("Done.")
 
         # initialize Experience Replay memory buffer
-        self.memory = Memory(FLAGS.max_memory)
-        self.batch_size = FLAGS.batch_size
+        self.memory = Memory(max_memory)
+        self.batch_size = batch_size
 
         self.last_state = None
         self.last_action = None
@@ -121,6 +109,9 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
         self.last_state = None
         self.last_action = None
+
+        global_episode = self.network.global_episode.eval(session=self.sess)
+        print("Global episode:", global_episode)
 
         # don't do anything else for 1st episode
         if self.episodes > 1:

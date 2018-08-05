@@ -44,14 +44,14 @@ class PlayerRelativeMovementCNN(object):
 
     def write_summary(self, sess, states, actions, targets, score):
         """Write summary to Tensorboard."""
-        global_episodes = self.global_episodes.eval(session=sess)
+        global_episode = self.global_episode.eval(session=sess)
         summary = sess.run(
             self.write_op,
             feed_dict={self.inputs: states,
                        self.actions: actions,
                        self.targets: targets,
                        self.score: score})
-        self.writer.add_summary(summary, global_episodes - 1)
+        self.writer.add_summary(summary, global_episode - 1)
         self.writer.flush
 
     def run_init_op(self, sess):
@@ -86,10 +86,10 @@ class PlayerRelativeMovementCNN(object):
                 trainable=False,
                 name='global_step')
 
-            self.global_episodes = tf.Variable(
+            self.global_episode = tf.Variable(
                 0,
                 trainable=False,
-                name='global_episodes')
+                name='global_episode')
 
             # placeholders
             self.inputs = tf.placeholder(
@@ -107,8 +107,8 @@ class PlayerRelativeMovementCNN(object):
                 [None],
                 name='targets')
 
-            self.increment_global_episode = tf.assign(self.global_episodes,
-                                                      self.global_episodes + 1)
+            self.increment_global_episode = tf.assign(self.global_episode,
+                                                      self.global_episode + 1)
 
             # spatial coordinates are given in y-major screen coordinate space
             # transpose them to (x, y) space before beginning
