@@ -3,6 +3,9 @@ import numpy as np
 import os
 import tensorflow as tf
 
+# local submodule
+import networks.value_estimators as nets
+
 from absl import flags
 
 from collections import deque
@@ -18,7 +21,7 @@ feature_minimap_size = FLAGS.feature_minimap_size
 
 # neural network hyperparameters
 flags.DEFINE_float("learning_rate", 0.00001, "Learning rate.")
-flags.DEFINE_float("discount_factor", 1.0, "Discount factor.")
+flags.DEFINE_float("discount_factor", 0.99, "Discount factor.")
 
 # agent hyperparameters
 flags.DEFINE_float("epsilon_max", 1, "Initial exploration probability.")
@@ -26,8 +29,8 @@ flags.DEFINE_float("epsilon_min", 0.02, "Final exploration probability.")
 flags.DEFINE_integer("epsilon_decay_steps", 100000, "Steps for linear decay.")
 flags.DEFINE_integer("train_every", 1, "Steps between training batches.")
 
-flags.DEFINE_integer("max_memory", 2048, "Experience Replay buffer size.")
-flags.DEFINE_integer("batch_size", 16, "Training batch size.")
+flags.DEFINE_integer("max_memory", 4096, "Experience Replay buffer size.")
+flags.DEFINE_integer("batch_size", 32, "Training batch size.")
 
 # run settings
 flags.DEFINE_string(
@@ -86,9 +89,13 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.train_every = FLAGS.train_every
 
         # build network
+        self.save_path = FLAGS.save_dir + "DQNPlayerRelativeMoveScreen.ckpt"
         print("Building model...")
-        tf.reset_default_graph()
-        self._build_network()
+        self.network = nets.PlayerRelativeMovementCNN(
+            spacial_dimensions=feature_screen_size,
+            learning_rate=self.learning_rate,
+            save_path=self.save_path,
+            summary_path=FLAGS.summary_path)
         print("Done.")
 
         # initialize Experience Replay memory buffer
@@ -98,57 +105,35 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.last_state = None
         self.last_action = None
 
-        # setup summary writer
-        self.writer = tf.summary.FileWriter(FLAGS.summary_path)
-        tf.summary.scalar("Loss", self.loss)
-        tf.summary.scalar("Score", self.score)
-        self.write_op = tf.summary.merge_all()
-
-        # setup model saver
-        self.saver = tf.train.Saver()
-        self.save_path = FLAGS.save_dir + "DQNPlayerRelativeMoveScreen.ckpt"
-
         # initialize session
         self.sess = tf.Session()
         if os.path.isfile(self.save_path + ".index"):
-            self.saver.restore(self.sess, self.save_path)
+            self.network.load(self.sess)
         else:
-            init_op = tf.global_variables_initializer()
-            self.sess.run(init_op)
+            self.network.run_init_op(self.sess)
 
     def reset(self):
         """Handle the beginning of new episodes."""
         self.episodes += 1
-        self.sess.run(self.increment_global_episode)
+        self.network.increment_global_episode_op(self.sess)
         score = self.reward
         self.reward = 0
 
         self.last_state = None
         self.last_action = None
 
-        global_episodes = self.global_episodes.eval(session=self.sess)
-
         # don't do anything else for 1st episode
         if self.episodes > 1:
 
             # save current model
-            self.saver.save(self.sess, self.save_path)
+            self.network.save_model(self.sess)
             print("Model Saved")
 
             # write summaries from last episode
             states, actions, targets = self._get_batch()
-            summary = self.sess.run(
-                self.write_op,
-                feed_dict={self.inputs: states,
-                           self.actions: actions,
-                           self.targets: targets,
-                           self.score: score})
-
-            self.writer.add_summary(summary, global_episodes - 1)
-            self.writer.flush()
+            self.network.write_summary(
+                self.sess, states, actions, targets, score)
             print("Summary Written")
-
-        print("Starting Global Episode", global_episodes)
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
@@ -157,9 +142,6 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
             state = obs.observation.feature_screen.player_relative
-            # spatial coordinates are given in y-major screen coordinate space
-            # transpose them to (x, y) space before beginning
-            state = np.transpose(state)
 
             # predict an action to take and take it
             x, y = self._epsilon_greedy_action_selection(state)
@@ -187,7 +169,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
     def _epsilon_greedy_action_selection(self, state):
         """Choose action from state with epsilon greedy strategy."""
-        step = self.global_step.eval(session=self.sess)
+        step = self.network.global_step.eval(session=self.sess)
         epsilon = max(
             self.epsilon_min,
             (self.epsilon_max - ((self.epsilon_max - self.epsilon_min) *
@@ -203,8 +185,8 @@ class DQNMoveOnly(base_agent.BaseAgent):
             inputs = np.expand_dims(state, 0)
 
             q_values = self.sess.run(
-                self.output,
-                feed_dict={self.inputs: inputs})
+                self.network.flatten,
+                feed_dict={self.network.inputs: inputs})
 
             max_index = np.argmax(q_values)
             x, y = np.unravel_index(max_index, feature_screen_size)
@@ -212,12 +194,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
     def _train_network(self):
         states, actions, targets = self._get_batch()
-
-        loss, _ = self.sess.run(
-            [self.loss, self.optimizer],
-            feed_dict={self.inputs: states,
-                       self.actions: actions,
-                       self.targets: targets})
+        self.network.optimizer_op(self.sess, states, actions, targets)
 
     def _get_batch(self):
         batch = self.memory.sample(self.batch_size)
@@ -231,117 +208,10 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
         # get targets
         next_outputs = self.sess.run(
-            self.output,
-            feed_dict={self.inputs: next_states})
+            self.network.output,
+            feed_dict={self.network.inputs: next_states})
 
         targets = [rewards[i] + self.discount_factor * np.max(next_outputs[i])
                    for i in range(self.batch_size)]
 
         return states, actions, targets
-
-    def _build_network(self):
-        """CNN used to approximate Q table with screen features."""
-        with tf.variable_scope('DQN'):
-
-            # placeholders
-            self.inputs = tf.placeholder(
-                tf.int32,
-                [None, *feature_screen_size],
-                name='inputs')
-
-            self.actions = tf.placeholder(
-                tf.float32,
-                [None, np.prod(feature_screen_size)],
-                name='actions')
-
-            self.targets = tf.placeholder(
-                tf.float32,
-                [None],
-                name='targets')
-
-            # score tracker
-            self.score = tf.placeholder(
-                tf.int32,
-                [],
-                name='score')
-
-            # global step trackers for multiple runs restoring from ckpt
-            self.global_step = tf.Variable(
-                0,
-                trainable=False,
-                name='global_step')
-
-            self.global_episodes = tf.Variable(
-                0,
-                trainable=False,
-                name='global_episodes')
-
-            self.increment_global_episode = tf.assign(self.global_episodes,
-                                                      self.global_episodes + 1)
-
-            # embed layer (one-hot in channel dimension, 1x1 convolution)
-            # the player_relative feature layer has 5 categorical values
-            self.one_hot = tf.one_hot(
-                self.inputs,
-                depth=5,
-                axis=-1,
-                name='one_hot')
-
-            self.embed = tf.layers.conv2d(
-                inputs=self.one_hot,
-                filters=1,
-                kernel_size=[1, 1],
-                strides=[1, 1],
-                padding='VALID',
-                name='embed')
-
-            # convolutional layer 1
-            self.conv1 = tf.layers.conv2d(
-                inputs=self.embed,
-                filters=16,
-                kernel_size=[5, 5],
-                strides=[1, 1],
-                padding='SAME',
-                name='conv1')
-
-            self.conv1_activation = tf.nn.relu(
-                self.conv1,
-                name='conv1_activation')
-
-            # convolutional layer 2
-            self.conv2 = tf.layers.conv2d(
-                inputs=self.conv1_activation,
-                filters=32,
-                kernel_size=[3, 3],
-                strides=[1, 1],
-                padding='SAME',
-                name='conv2')
-
-            self.conv2_activation = tf.nn.relu(
-                self.conv2,
-                name='conv2_activation')
-
-            # spacial output layer
-            self.output = tf.layers.conv2d(
-                inputs=self.conv1_activation,
-                filters=1,
-                kernel_size=[1, 1],
-                strides=[1, 1],
-                padding='SAME',
-                name='output')
-
-            # output shape: (1, feature_screen_size[0]*feature_screen_size[1])
-            self.flatten = tf.layers.flatten(self.output)
-
-            # optimization: RMSE between state predicted Q and target Q
-            self.predicted_Q = tf.reduce_sum(
-                tf.multiply(self.flatten, self.actions),
-                axis=1)
-
-            self.loss = tf.reduce_mean(
-                tf.square(self.targets - self.predicted_Q),
-                name='loss')
-
-            self.optimizer = tf.train.RMSPropOptimizer(
-                self.learning_rate).minimize(self.loss,
-                                             global_step=self.global_step)
