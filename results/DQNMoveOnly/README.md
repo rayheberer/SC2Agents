@@ -6,13 +6,47 @@
 This model operates on reduced state and action spaces, processing only the `player_relative` screen feature layer, and outputting a spacial coordinate meant to be used as an argument to `Move_screen("now", ...)`.
 
 ### Estimator
-A deep Q network is used to model the value of each action conditioned on the state. The value is equal to the expected reward due to selecting the action, plus the value of the best action possible from the state the environment will transition to as a result of the action - discounted multiplicatively by `discount_factor`.
+A deep Q network (DQN) is used to model the value (Q) of each action conditioned on the state. The value represents the expected total reward due to selecting an action, and is equal to the expected immediate reward plus the best value achievable from the state the environment will transition to as a result of the action - discounted multiplicatively by `discount_factor`.
 
-### Action Selection
-A epsilon-greedy strategy is used, where the probability of selecting a random action, epsilon, is annealed linearly from a maximum value `epsilon_max` to a minimum value `epsilon_min` over a number of steps equaling `epsilon_decay_steps`. When selecting an action using the model, the action having the maximum estimated value (Q) according to the online DQN is chosen.
+### Policy
+At each step, the action having the maximum Q-value according to the DQN is chosen.
+
+### Training Procedure
+An epsilon-greedy strategy is used to explore the state/action space. The probability of selecting a random action, epsilon, is annealed linearly from a maximum value `epsilon_max` to a minimum value `epsilon_min` over a number of steps equaling `epsilon_decay_steps`. When selecting actions nonrandomly, the agent acts according to its policy, selecting the action with the highest estimated value.
+
+A separate copy of the network is used to calculate the values of states to be used as targets when training the online DQN (the network used to inform the policy). Periodically (every `target_update_frequency` steps), the weights of the online DQN are copied over to the target DQN. This is to stabilize the values predicted, and to prevent feedback loops leading to large overestimations.
 
 ## Results
+<table align="center">
+  <tr>
+    <td align="center"></td>
+    <td align="center">Mean Score</td>
+    <td align="center">Max Score</td>
+    <td align="center">Training Episodes</td>
+    <td align="center">Hyperparameters</td>
+    <td align="center">Checkpoint</td>
+    <td align="center">Notes</td>
 
+  </tr>
+  <tr>
+    <td align="center">MoveToBeacon</td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+  </tr>
+  <tr>
+    <td align="center">CollectMineralShards</td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+  </tr>
+</table>
 
 ## Training Notes/Caveats
 * The Experience Replay buffer does not persist over multiple runs, and is repopulated from scratch each time.

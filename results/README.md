@@ -13,10 +13,8 @@ Model details, reporting on hyperparameter setings for runs and their results, a
     <td align="center">DQNMoveOnly</td>
     <td align="center"></td>
     <td align="center"></td>
-    <td align="center"></td>
   </tr>
   <tr>
-    <td align="center"></td>
     <td align="center"></td>
     <td align="center"></td>
     <td align="center"></td>
