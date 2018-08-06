@@ -31,7 +31,7 @@ and extract them to your `StarcraftII/Maps/` directory.
 ### 4. Train an Agent
 
 ```
-$ python -m pysc2.bin.agent --map CollectMineralShards --agent deepq_agents.DQNMoveOnly
+$ python -m pysc2.bin.agent --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly
 ```
 
 ### 5. View Metrics on Tensorboard
@@ -43,3 +43,7 @@ $ tensorboard --logdir=./tensorboard/deepq
 ### 6. Watch a Replay
 
 `$ python -m pysc2.bin.play --replay <path-to-replay>`
+
+## Results
+
+Links to pretrained networks and reporting on their results can be found in [results](https://github.com/rayheberer/SC2Agents/tree/master/results).
