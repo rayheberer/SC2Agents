@@ -2,7 +2,7 @@
 
 StarCraft II playing agents that interface directly with Deepmind's [PySC2](https://github.com/deepmind/pysc2) API.
 
-At the moment, deep RL agents are unable to defeat the easiest of the scripted bots in the full game. Therefore, I will begin by implementing agents intended to tackle the mini-games introduced and described in [Starcraft II: A New Challenge for Reinforcement Learning](https://arxiv.org/abs/1708.04782).
+At the moment, deep RL agents are unable to defeat the easiest of the scripted bots in the full game. Therefore, I begin by implementing agents intended to tackle the mini-games introduced and described in [Starcraft II: A New Challenge for Reinforcement Learning](https://arxiv.org/abs/1708.04782).
 
 ## Requirements
 * Python 3 (tested with 3.6)
