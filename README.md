@@ -1,10 +1,16 @@
 # StarCraft II Agents
 
-These agents interface directly with Deepmind's [PySC2](https://github.com/deepmind/pysc2) API.
+StarCraft II playing agents that interface directly with Deepmind's [PySC2](https://github.com/deepmind/pysc2) API.
+
+## Requirements
+* Python 3 (tested with 3.6)
+* pysc2 (tested with 2.0.1)
+* tensorflow (tested with 1.9.0)
+* StarCraft II + Maps
 
 ## Usage
 
-### 1. Get PySC2 and other Dependencies
+### 1. Install Dependencies
 
 To ensure that the version is compatible with the agents in this repository, I recommend using [Pipenv](https://docs.pipenv.org/).
 
@@ -21,6 +27,8 @@ $ pipenv install
 ### 2. Install StarCraft II
 
 http://us.battle.net/sc2/en/legacy-of-the-void/
+
+PySC2 expects the game to be installed in `~/StarCraftII/`, but this can be overriden by setting the `SC2PATH` environment variable.
 
 ### 3. Download Maps
 
