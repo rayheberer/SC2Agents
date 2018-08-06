@@ -37,14 +37,14 @@ The action-reward-next_state data used as inputs during the gradient updates to 
     <td align="center"></td>
     <td align="center"></td>
     <td align="center"></td>
-    <td align="center">`learning_rate`: 1e-5\n
-                       `discount_factor`: 0.95\n
-                       `epsilon_max`: 1.0\n
-                       `epsilon_min`: 0.01\n
-                       `epsilon_decay_steps`: 10,000\n
-                       `train_frequency`> 1\n
-                       `target_update_frequency`: 500\n
-                       `max_memory`: 10000\n
+    <td align="center">`learning_rate`: 1e-5<br>
+                       `discount_factor`: 0.95<br>
+                       `epsilon_max`: 1.0<br>
+                       `epsilon_min`: 0.01<br>
+                       `epsilon_decay_steps`: 10,000<br>
+                       `train_frequency`> 1<br>
+                       `target_update_frequency`: 500<br>
+                       `max_memory`: 10000<br>
                        `batch_size`: 16
                      </td>
     <td align="center"></td>
