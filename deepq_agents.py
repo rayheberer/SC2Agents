@@ -65,7 +65,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
                  summary_path="./tensorboard/deepq",
                  max_memory=10000,
                  batch_size=16,
-                 indicate_nonrandom_action=True):
+                 indicate_nonrandom_action=False):
         """Initialize rewards/episodes/steps, build network."""
         super(DQNMoveOnly, self).__init__()
 
