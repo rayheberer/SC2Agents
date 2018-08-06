@@ -37,7 +37,7 @@ The action-reward-next_state data used as inputs during the gradient updates to 
     <td align="center"></td>
     <td align="center"></td>
     <td align="center"></td>
-    <td align="center"><code>learning_rate</code>: 1e-5<br>
+    <td align="left"><code>learning_rate</code>: 1e-5<br>
                        <code>discount_factor</code>: 0.95<br>
                        <code>epsilon_max</code>: 1.0<br>
                        <code>epsilon_min</code>: 0.01<br>
@@ -55,7 +55,7 @@ The action-reward-next_state data used as inputs during the gradient updates to 
     <td align="center"></td>
     <td align="center"></td>
     <td align="center"></td>
-    <td align="center"></td>
+    <td align="left"></td>
     <td align="center"></td>
     <td align="center"></td>
   </tr>
