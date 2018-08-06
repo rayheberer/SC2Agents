@@ -65,3 +65,4 @@ The action-reward-next_state data used as inputs during the gradient updates to 
 * The Experience Replay buffer does not persist over multiple runs, and is repopulated from scratch each time.
 * The target network is updated at the beginning of each new run, even when restoring the online network from a checkpoint.
 * Tensorboard summaries are written at the beginning of each episode, for the previous episode. The last episode of a run is not summarized.
+* As with summaries, network weights for the last episode of a run are not saved.
