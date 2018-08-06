@@ -140,7 +140,7 @@ class PlayerRelativeMovementCNN(object):
             self.conv1 = tf.layers.conv2d(
                 inputs=self.embed,
                 filters=16,
-                kernel_size=[5, 5],
+                kernel_size=[3, 3],
                 strides=[1, 1],
                 padding='SAME',
                 name='conv1')

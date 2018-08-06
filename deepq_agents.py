@@ -53,18 +53,18 @@ class DQNMoveOnly(base_agent.BaseAgent):
     """A DQN that receives `player_relative` features and takes movements."""
 
     def __init__(self,
-                 learning_rate=1e-6,
-                 discount_factor=0.99,
+                 learning_rate=1e-5,
+                 discount_factor=0.95,
                  epsilon_max=1.0,
                  epsilon_min=0.01,
-                 epsilon_decay_steps=100000,
+                 epsilon_decay_steps=10000,
                  train_frequency=1,
-                 target_update_frequency=40,
+                 target_update_frequency=500,
                  save_dir="./checkpoints/",
                  ckpt_name="DQNMoveOnly",
                  summary_path="./tensorboard/deepq",
-                 max_memory=4096,
-                 batch_size=32,
+                 max_memory=10000,
+                 batch_size=16,
                  indicate_nonrandom_action=True):
         """Initialize rewards/episodes/steps, build network."""
         super(DQNMoveOnly, self).__init__()
@@ -159,6 +159,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             # update network used to estimate TD targets
             if self.steps % self.target_update_frequency == 0:
                 self._update_target_network()
+                print("Target network updated.")
 
             # add experience to memory
             if self.last_state is not None:
