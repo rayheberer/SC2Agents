@@ -35,7 +35,7 @@ A separate copy of the network is used to calculate the values of states to be u
     <td align="center"></td>
     <td align="center"></td>
     <td align="center"></td>
-    <td align="center"></td>
+    <td align="center">`step_mul` flag set to 16 during training</td>
   </tr>
   <tr>
     <td align="center">CollectMineralShards</td>
