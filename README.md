@@ -73,6 +73,8 @@ $ python -m pysc2.bin.play --replay <path-to-replay>
 
 Links to pretrained networks and reporting on their results can be found in [results](https://github.com/rayheberer/SC2Agents/tree/master/results).
 
+All checkpoint files are stored in this [Google Drive](https://drive.google.com/open?id=1FKj0wTg_QBi-4zkeqixEWI71arpECriy).
+
 The following agents are implemented in this repository:
 
 * __DQNMoveOnly__ - a deep q-learner that processes a single screen feature layer through a convolutional neural network and outputs spacial coordinates for the `Move_screen` action.
