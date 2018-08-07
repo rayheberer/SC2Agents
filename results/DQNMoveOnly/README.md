@@ -48,8 +48,9 @@ The action-reward-next_state data used as inputs during the gradient updates to 
                        <code>batch_size</code>: 16
                      </td>
     <td align="center"><a href="https://drive.google.com/file/d/18BTNB8T2JHdEyw_Fg34lrJcsA0pSst5L/view?usp=sharing">GDrive</a></td>
-    <td align="center">`step_mul` flag set to 16 during training<br>
-                        failed to learn an optimal policy, gets stuck at edge of beacon</td>
+    <td align="center"><ol><li><code>`step_mul`</code> flag set to 16 during training.</li>
+                           <li>failed to learn an optimal policy, gets stuck at edge of beacon.</li>
+                       </ol></td>
   </tr>
   <tr>
     <td align="center">CollectMineralShards</td>

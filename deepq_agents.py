@@ -133,26 +133,28 @@ class DQNMoveOnly(base_agent.BaseAgent):
         score = self.reward
         self.reward = 0
 
+        # no need to save checkpoints or write summaries if not training
+        if not self.training:
+            return
+
         self.last_state = None
         self.last_action = None
+        self.network.increment_global_episode_op(self.sess)
+        episode = self.network.global_episode.eval(session=self.sess)
+        print("Global episode:", episode)
 
-        if self.training:
-            self.network.increment_global_episode_op(self.sess)
-            episode = self.network.global_episode.eval(session=self.sess)
-            print("Global episode:", episode)
+        # don't do anything else for 1st episode
+        if self.episodes > 1:
 
-            # don't do anything else for 1st episode
-            if self.episodes > 1:
+            # save current model
+            self.network.save_model(self.sess)
+            print("Model Saved")
 
-                # save current model
-                self.network.save_model(self.sess)
-                print("Model Saved")
-
-                # write summaries from last episode
-                states, actions, targets = self._get_batch()
-                self.network.write_summary(
-                    self.sess, states, actions, targets, score)
-                print("Summary Written")
+            # write summaries from last episode
+            states, actions, targets = self._get_batch()
+            self.network.write_summary(
+                self.sess, states, actions, targets, score)
+            print("Summary Written")
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
