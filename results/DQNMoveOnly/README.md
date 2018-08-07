@@ -24,7 +24,7 @@ The action-reward-next_state data used as inputs during the gradient updates to 
 <table align="center">
   <tr>
     <td align="center"></td>
-    <td align="center">Score</td>
+    <td align="center">Test Score</td>
     <td align="center">Training Episodes</td>
     <td align="center">Hyperparameters</td>
     <td align="center">Notes</td>
@@ -34,9 +34,8 @@ The action-reward-next_state data used as inputs during the gradient updates to 
     <td align="center">MoveToBeacon <br>
                       (run 1) <br>
                       <a href="https://drive.google.com/file/d/18BTNB8T2JHdEyw_Fg34lrJcsA0pSst5L/view?usp=sharing">checkpoint</a></td>
-    <td align="center">~1 (mean score)<br>
-                       7 (max score) <br>
-                       evaluated over 100 episodes</td>
+    <td align="center">~1 (mean)<br>
+                       7 (max) </td>
     <td align="center">1,000 (~17,000 steps)</td>
     <td align="left"><code>learning_rate</code>: 1e-5<br>
                        <code>discount_factor</code>: 0.95<br>
@@ -50,6 +49,7 @@ The action-reward-next_state data used as inputs during the gradient updates to 
                      </td>
     <td align="left"><ul><li><code>`step_mul`</code> flag set to 16 during training.</li>
                            <li>failed to learn an optimal policy, gets stuck at edge of beacon.</li>
+                           <li>test score evaluated over 100 episodes.</li>
                        </ul></td>
   </tr>
   <tr>
