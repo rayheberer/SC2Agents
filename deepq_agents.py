@@ -145,6 +145,9 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.steps += 1
         self.reward += obs.reward
 
+        print(self.sess.run(self.network.global_step))
+        print(obs.done)
+
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
             state = obs.observation.feature_screen.player_relative
 

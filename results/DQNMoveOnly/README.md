@@ -33,10 +33,10 @@ The action-reward-next_state data used as inputs during the gradient updates to 
 
   </tr>
   <tr>
-    <td align="center">MoveToBeacon</td>
+    <td align="center">MoveToBeacon (run 1)</td>
     <td align="center"></td>
     <td align="center"></td>
-    <td align="center"></td>
+    <td align="center">1,000 (~17,000) steps</td>
     <td align="left"><code>learning_rate</code>: 1e-5<br>
                        <code>discount_factor</code>: 0.95<br>
                        <code>epsilon_max</code>: 1.0<br>
@@ -47,8 +47,9 @@ The action-reward-next_state data used as inputs during the gradient updates to 
                        <code>max_memory</code>: 1e4<br>
                        <code>batch_size</code>: 16
                      </td>
-    <td align="center"></td>
-    <td align="center">`step_mul` flag set to 16 during training</td>
+    <td align="center"><a href="https://drive.google.com/file/d/18BTNB8T2JHdEyw_Fg34lrJcsA0pSst5L/view?usp=sharing">GDrive</a></td>
+    <td align="center">`step_mul` flag set to 16 during training<br>
+                        failed to learn an optimal policy, gets stuck at edge of beacon</td>
   </tr>
   <tr>
     <td align="center">CollectMineralShards</td>
