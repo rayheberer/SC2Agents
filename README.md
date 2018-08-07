@@ -52,7 +52,9 @@ $ tensorboard --logdir=./tensorboard/deepq
 
 ### 6. Watch a Replay
 
-`$ python -m pysc2.bin.play --replay <path-to-replay>`
+```
+$ python -m pysc2.bin.play --replay <path-to-replay>
+```
 
 ## Results
 
