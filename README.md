@@ -61,7 +61,7 @@ $ tensorboard --logdir=./tensorboard/deepq
 $ python -m run --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly --training=False
 ```
 
-Use the `--save_dir` and `--ckpt_name` flags to specify a TensorFlow checkpoint to read from and write to. By default, an agent will store checkpoint in `./checkpoints/<name-of-agent-class>`.
+Use the `--save_dir` and `--ckpt_name` flags to specify a TensorFlow checkpoint to read from and write to. By default, an agent will store checkpoints in `./checkpoints/<name-of-agent-class>`.
 
 ### 6. Watch a Replay
 
