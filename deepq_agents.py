@@ -53,21 +53,30 @@ class DQNMoveOnly(base_agent.BaseAgent):
     """A DQN that receives `player_relative` features and takes movements."""
 
     def __init__(self,
-                 learning_rate=1e-5,
-                 discount_factor=0.95,
-                 epsilon_max=1.0,
-                 epsilon_min=0.01,
-                 epsilon_decay_steps=10000,
-                 train_frequency=1,
-                 target_update_frequency=500,
+                 learning_rate=FLAGS.learning_rate,
+                 discount_factor=FLAGS.discount_factor,
+                 epsilon_max=FLAGS.epsilon_max,
+                 epsilon_min=FLAGS.epsilon_min,
+                 epsilon_decay_steps=FLAGS.epsilon_decay_steps,
+                 train_frequency=FLAGS.train_frequency,
+                 target_update_frequency=FLAGS.target_update_frequency,
+                 max_memory=FLAGS.max_memory,
+                 batch_size=FLAGS.batch_size,
+                 training=FLAGS.training,
+                 indicate_nonrandom_action=FLAGS.indicate_nonrandom_action,
                  save_dir="./checkpoints/",
                  ckpt_name="DQNMoveOnly",
-                 summary_path="./tensorboard/deepq",
-                 max_memory=10000,
-                 batch_size=16,
-                 indicate_nonrandom_action=False):
+                 summary_path="./tensorboard/deepq"):
         """Initialize rewards/episodes/steps, build network."""
         super(DQNMoveOnly, self).__init__()
+
+        # saving and summary writing
+        if FLAGS.save_dir:
+            save_dir = FLAGS.save_dir
+        if FLAGS.ckpt_name:
+            ckpt_name = FLAGS.ckpt_name
+        if FLAGS.summary_path:
+            summary_path = FLAGS.summary_path
 
         # neural net hyperparameters
         self.learning_rate = learning_rate
@@ -81,6 +90,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.target_update_frequency = target_update_frequency
 
         # other parameters
+        self.training = training
         self.indicate_nonrandom_action = indicate_nonrandom_action
 
         # build network
@@ -93,15 +103,17 @@ class DQNMoveOnly(base_agent.BaseAgent):
             save_path=self.save_path,
             summary_path=summary_path)
 
-        self.target_net = nets.PlayerRelativeMovementCNN(
-            spacial_dimensions=feature_screen_size,
-            learning_rate=self.learning_rate,
-            name='DQNTarget')
-        print("Done.")
+        if self.training:
+            self.target_net = nets.PlayerRelativeMovementCNN(
+                spacial_dimensions=feature_screen_size,
+                learning_rate=self.learning_rate,
+                name='DQNTarget')
 
-        # initialize Experience Replay memory buffer
-        self.memory = Memory(max_memory)
-        self.batch_size = batch_size
+            # initialize Experience Replay memory buffer
+            self.memory = Memory(max_memory)
+            self.batch_size = batch_size
+
+        print("Done.")
 
         self.last_state = None
         self.last_action = None
@@ -110,74 +122,77 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.sess = tf.Session()
         if os.path.isfile(self.save_path + ".index"):
             self.network.load(self.sess)
-            self._update_target_network()
+            if self.training:
+                self._update_target_network()
         else:
             self._tf_init_op()
 
     def reset(self):
         """Handle the beginning of new episodes."""
         self.episodes += 1
-        self.network.increment_global_episode_op(self.sess)
         score = self.reward
         self.reward = 0
 
         self.last_state = None
         self.last_action = None
 
-        global_episode = self.network.global_episode.eval(session=self.sess)
-        print("Global episode:", global_episode)
+        if self.training:
+            self.network.increment_global_episode_op(self.sess)
+            episode = self.network.global_episode.eval(session=self.sess)
+            print("Global episode:", episode)
 
-        # don't do anything else for 1st episode
-        if self.episodes > 1:
+            # don't do anything else for 1st episode
+            if self.episodes > 1:
 
-            # save current model
-            self.network.save_model(self.sess)
-            print("Model Saved")
+                # save current model
+                self.network.save_model(self.sess)
+                print("Model Saved")
 
-            # write summaries from last episode
-            states, actions, targets = self._get_batch()
-            self.network.write_summary(
-                self.sess, states, actions, targets, score)
-            print("Summary Written")
+                # write summaries from last episode
+                states, actions, targets = self._get_batch()
+                self.network.write_summary(
+                    self.sess, states, actions, targets, score)
+                print("Summary Written")
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
         self.steps += 1
         self.reward += obs.reward
 
-        print(self.sess.run(self.network.global_step))
-        print(obs.done)
-
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
             state = obs.observation.feature_screen.player_relative
 
-            # predict an action to take and take it
-            x, y, action_type = self._epsilon_greedy_action_selection(state)
+            if self.training:
+                # predict an action to take and take it
+                x, y, action = self._epsilon_greedy_action_selection(state)
 
-            # update online DQN
-            if (self.steps % self.train_frequency == 0 and
-                    len(self.memory) > self.batch_size):
-                self._train_network()
+                # update online DQN
+                if (self.steps % self.train_frequency == 0 and
+                        len(self.memory) > self.batch_size):
+                    self._train_network()
 
-            # update network used to estimate TD targets
-            if self.steps % self.target_update_frequency == 0:
-                self._update_target_network()
-                print("Target network updated.")
+                # update network used to estimate TD targets
+                if self.steps % self.target_update_frequency == 0:
+                    self._update_target_network()
+                    print("Target network updated.")
 
-            # add experience to memory
-            if self.last_state is not None:
-                self.memory.add(
-                    (self.last_state,
-                     self.last_action,
-                     obs.reward,
-                     state))
+                # add experience to memory
+                if self.last_state is not None:
+                    self.memory.add(
+                        (self.last_state,
+                         self.last_action,
+                         obs.reward,
+                         state))
 
-            self.last_state = state
-            self.last_action = np.ravel_multi_index(
-                (x, y),
-                feature_screen_size)
+                self.last_state = state
+                self.last_action = np.ravel_multi_index(
+                    (x, y),
+                    feature_screen_size)
 
-            if self.indicate_nonrandom_action and action_type == 'nonrandom':
+            else:
+                x, y, action = self._epsilon_greedy_action_selection(state, 0)
+
+            if self.indicate_nonrandom_action and action == 'nonrandom':
                 # cosmetic difference between random and Q based actions
                 return FUNCTIONS.Attack_screen("now", (x, y))
             else:
@@ -201,13 +216,15 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
         self.sess.run(update_op)
 
-    def _epsilon_greedy_action_selection(self, state):
+    def _epsilon_greedy_action_selection(self, state, epsilon=None):
         """Choose action from state with epsilon greedy strategy."""
         step = self.network.global_step.eval(session=self.sess)
-        epsilon = max(
-            self.epsilon_min,
-            (self.epsilon_max - ((self.epsilon_max - self.epsilon_min) *
-                                 step / self.epsilon_decay_steps)))
+
+        if epsilon is None:
+            epsilon = max(
+                self.epsilon_min,
+                (self.epsilon_max - ((self.epsilon_max - self.epsilon_min) *
+                                     step / self.epsilon_decay_steps)))
 
         if epsilon > np.random.rand():
             x = np.random.randint(0, feature_screen_size[0])

@@ -75,6 +75,24 @@ flags.DEFINE_bool("save_replay", True, "Whether to save a replay at the end.")
 flags.DEFINE_string("map", None, "Name of a map to use.")
 flags.mark_flag_as_required("map")
 
+# agent specific hyperparameters and settings
+flags.DEFINE_float("learning_rate", 1e-5, "Learning rate.")
+flags.DEFINE_float("discount_factor", 0.95, "Future reward discount factor.")
+flags.DEFINE_float("epsilon_max", 1.0, "Maximum exploration probability.")
+flags.DEFINE_float("epsilon_min", 0.01, "Minimum exploration probability.")
+flags.DEFINE_integer("epsilon_decay_steps", 10000, "Linear epsilon decay steps.")
+flags.DEFINE_integer("train_frequency", 1, "How often to train network.")
+flags.DEFINE_integer("target_update_frequency", 500, "How often to update target network.")
+flags.DEFINE_integer("max_memory", 10000, "Experience replay buffer capacity.")
+flags.DEFINE_integer("batch_size", 16, "Training batch size.")
+flags.DEFINE_bool("training", True, "Train the model during the run.")
+flags.DEFINE_string("save_dir", None, "Where to save tensorflow ckpts.")
+flags.DEFINE_string("ckpt_name", None, "Name for ckpt files.")
+flags.DEFINE_string("summary_path", None, "Where to write tensorboard summaries.")
+
+# DQNMoveOnly
+flags.DEFINE_bool("indicate_nonrandom_action", False, "Show nonrandom actions.")
+
 
 def run_thread(agent_classes, players, map_name, visualize):
   """Run one thread worth of the environment with agents."""

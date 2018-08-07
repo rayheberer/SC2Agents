@@ -41,14 +41,27 @@ and extract them to your `StarcraftII/Maps/` directory.
 ### 4. Train an Agent
 
 ```
+$ python -m run --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly
+```
+
+This is equivalent to:
+```
 $ python -m pysc2.bin.agent --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly
 ```
 
-### 5. View Metrics on Tensorboard
+However, it is possible to specify agent-specific hyperparameters as flags.
+
+### 5. Evaluate an Agent
 
 ```
 $ tensorboard --logdir=./tensorboard/deepq
 ```
+
+```
+$ python -m run --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly --training=False
+```
+
+Use the `--save_dir` and `--ckpt_name` flags to specify a TensorFlow checkpoint to read from and write to. By default, an agent will store checkpoint in `./checkpoints/<name-of-agent-class>`.
 
 ### 6. Watch a Replay
 
