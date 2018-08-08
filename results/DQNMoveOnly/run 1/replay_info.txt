@@ -1,0 +1,20 @@
+map_name: "Movement01"
+local_map_path: "mini_games/MoveToBeacon.SC2Map"
+player_info {
+  player_info {
+    player_id: 1
+    race_requested: Terran
+    race_actual: Terran
+  }
+  player_result {
+    player_id: 1
+    result: Tie
+  }
+  player_apm: 166
+}
+game_duration_loops: 5762
+game_duration_seconds: 257.2500915527344
+game_version: "4.4.1.66668"
+data_build: 66668
+base_build: 66668
+data_version: "C094081D274A39219061182DBFD7840F"

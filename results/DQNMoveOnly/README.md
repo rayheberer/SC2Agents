@@ -9,7 +9,7 @@ This model operates on reduced state and action spaces, processing only the `pla
 A deep Q network (DQN) is used to model the value (Q) of each action conditioned on the state. The value represents the expected total reward due to selecting an action, and is equal to the expected immediate reward plus the best value achievable from the state the environment will transition to as a result of the action - discounted multiplicatively by `discount_factor`.
 
 ### Policy
-At each step, with probability `epsilon_min` a random action is chosen, otherwise the action having the maximum Q-value according to the DQN is chosen.
+At each step, with probability `epsilon_min` a random action is chosen, otherwise the action having the maximum Q-value according to the DQN is chosen. The `epsilon_min` used by the learned policy need not be that used during training, and may be 0.
 
 ### Training Procedure
 An epsilon-greedy strategy is used to explore the state/action space. The probability of selecting a random action, epsilon, is annealed linearly from a maximum value `epsilon_max` to a minimum value `epsilon_min` over a number of steps equaling `epsilon_decay_steps`. When selecting actions nonrandomly, the agent acts according to its policy, selecting the action with the highest estimated value.
@@ -56,9 +56,9 @@ The action-reward-next_state data used as inputs during the gradient updates to 
     </td>
     <td align="left">
       <ul>
-        <li><code>`step_mul`</code> flag set to 16 during training.</li>
+        <li><code>step_mul</code> flag set to 16 during training.</li>
         <li>failed to learn an optimal policy, gets stuck at edge of beacon.</li>
-        <li>test score evaluated over 100 episodes.</li>
+        <li>test score evaluated over 100 episodes with epsilon=0.</li>
         </ul>
       </td>
   </tr>
@@ -69,8 +69,8 @@ The action-reward-next_state data used as inputs during the gradient updates to 
       <a href="https://drive.google.com/open?id=1GAoxY1fEkDH8LO2_IwigYpTmsuGstyxn">checkpoint</a>
     </td>
     <td align="center">
-      <strong>~13</strong> (mean)<br>
-      <strong>21</strong> (max)
+      <strong>~20</strong> (mean)<br>
+      <strong>23</strong> (max)
     </td>
     <td align="center">
       1,000 (~120,000 steps)
@@ -87,9 +87,11 @@ The action-reward-next_state data used as inputs during the gradient updates to 
       <code>batch_size</code>: 16
     </td>
     <td align="left">
-      <li><code>`step_mul`</code> flag set to 16 during training.</li>
-      <li>gets stuck at edge of some beacon positions.</li>
-      <li>test score evaluated over 100 episodes.</li>
+      <li><code>step_mul</code> flag set to 16 during training.</li>
+      <li><code>step_mul</code> flag set to 16 during testing.</li>
+      <li>test score evaluated over 100 episodes with epsilon=0.</li>
+      <li>policy does not generalize well to a <code>step_mul</code> of 8, agent gets stuck at edge of some beacon positions.</li>
+      <li>test score with <code>step_mul</code>=8: ~13 (mean), 21 (max).</li>
     </td>
   </tr>
 </table>

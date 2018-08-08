@@ -1,6 +1,8 @@
 # Results
 Model details, reporting on hyperparameter setings for runs and their results, and links to trained model checkpoints.
 
+Replays and Tensorboard metrics for each individual run are stored in corresponding directories. Note that SC2 replays will not work on versions of the game other than that with which they were generated.
+
 ## Summary (best runs)
 <table align="center">
   <tr>
@@ -12,8 +14,8 @@ Model details, reporting on hyperparameter setings for runs and their results, a
   <tr>
     <td align="center">DQNMoveOnly</td>
     <td align="right">
-      Mean Score: 13<br>
-      Max Score: 21
+      Mean Score: ~20<br>
+      Max Score: 23
     </td>
     <td align="center"></td>
   </tr>
