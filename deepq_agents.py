@@ -192,7 +192,9 @@ class DQNMoveOnly(base_agent.BaseAgent):
                     feature_screen_size)
 
             else:
-                x, y, action = self._epsilon_greedy_action_selection(state, 0)
+                x, y, action = self._epsilon_greedy_action_selection(
+                    state,
+                    self.epsilon_min)
 
             if self.indicate_nonrandom_action and action == 'nonrandom':
                 # cosmetic difference between random and Q based actions
