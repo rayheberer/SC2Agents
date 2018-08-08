@@ -51,6 +51,13 @@ $ python -m pysc2.bin.agent --map MoveToCheckpoint --agent deepq_agents.DQNMoveO
 
 However, it is possible to specify agent-specific hyperparameters as flags.
 
+Use the `--save_dir` and `--ckpt_name` flags to specify a TensorFlow checkpoint to read from and write to. By default, an agent will store checkpoints in `./checkpoints/<name-of-agent-class>`.
+
+For example, if there is a checkpoint named `DQNMoveOnly2` in `./checkpoints`, to continue training this model run:
+```
+python -m run --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly --ckpt_name=DQNMoveOnly2
+```
+
 ### 5. Evaluate an Agent
 
 ```
@@ -61,7 +68,7 @@ $ tensorboard --logdir=./tensorboard/deepq
 $ python -m run --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly --training=False
 ```
 
-Use the `--save_dir` and `--ckpt_name` flags to specify a TensorFlow checkpoint to read from and write to. By default, an agent will store checkpoints in `./checkpoints/<name-of-agent-class>`.
+
 
 ### 6. Watch a Replay
 
