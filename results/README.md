@@ -1,7 +1,7 @@
 # Results
 Model details, reporting on hyperparameter setings for runs and their results, and links to trained model checkpoints.
 
-## Summary
+## Summary (best runs)
 <table align="center">
   <tr>
     <td align="center"></td>
@@ -11,7 +11,10 @@ Model details, reporting on hyperparameter setings for runs and their results, a
   </tr>
   <tr>
     <td align="center">DQNMoveOnly</td>
-    <td align="center"></td>
+    <td align="right">
+      Mean Score: 13<br>
+      Max Score: 21
+    </td>
     <td align="center"></td>
   </tr>
   <tr>

@@ -9,7 +9,7 @@ This model operates on reduced state and action spaces, processing only the `pla
 A deep Q network (DQN) is used to model the value (Q) of each action conditioned on the state. The value represents the expected total reward due to selecting an action, and is equal to the expected immediate reward plus the best value achievable from the state the environment will transition to as a result of the action - discounted multiplicatively by `discount_factor`.
 
 ### Policy
-At each step, the action having the maximum Q-value according to the DQN is chosen.
+At each step, with probability `epsilon_min` a random action is chosen, otherwise the action having the maximum Q-value according to the DQN is chosen.
 
 ### Training Procedure
 An epsilon-greedy strategy is used to explore the state/action space. The probability of selecting a random action, epsilon, is annealed linearly from a maximum value `epsilon_max` to a minimum value `epsilon_min` over a number of steps equaling `epsilon_decay_steps`. When selecting actions nonrandomly, the agent acts according to its policy, selecting the action with the highest estimated value.
@@ -31,34 +31,66 @@ The action-reward-next_state data used as inputs during the gradient updates to 
 
   </tr>
   <tr>
-    <td align="center">MoveToBeacon <br>
-                      (run 1) <br>
-                      <a href="https://drive.google.com/file/d/18BTNB8T2JHdEyw_Fg34lrJcsA0pSst5L/view?usp=sharing">checkpoint</a></td>
-    <td align="center">~1 (mean)<br>
-                       7 (max) </td>
-    <td align="center">1,000 (~17,000 steps)</td>
-    <td align="left"><code>learning_rate</code>: 1e-5<br>
-                       <code>discount_factor</code>: 0.95<br>
-                       <code>epsilon_max</code>: 1.0<br>
-                       <code>epsilon_min</code>: 0.01<br>
-                       <code>epsilon_decay_steps</code>: 1e4<br>
-                       <code>train_frequency</code>> 1<br>
-                       <code>target_update_frequency</code>: 500<br>
-                       <code>max_memory</code>: 1e4<br>
-                       <code>batch_size</code>: 16
-                     </td>
-    <td align="left"><ul><li><code>`step_mul`</code> flag set to 16 during training.</li>
-                           <li>failed to learn an optimal policy, gets stuck at edge of beacon.</li>
-                           <li>test score evaluated over 100 episodes.</li>
-                       </ul></td>
+    <td align="center">
+      MoveToBeacon<br>
+      (run 1)<br>
+      <a href="https://drive.google.com/file/d/18BTNB8T2JHdEyw_Fg34lrJcsA0pSst5L/view?usp=sharing">checkpoint</a>
+    </td>
+    <td align="center">
+      ~1 (mean)<br>
+      7 (max) 
+    </td>
+    <td align="center">
+      1,000 (~120,000 steps)
+    </td>
+    <td align="left">
+      <code>learning_rate</code>: 1e-5<br>
+      <code>discount_factor</code>: 0.95<br>
+      <code>epsilon_max</code>: 1.0<br>
+      <code>epsilon_min</code>: 0.01<br>
+      <code>epsilon_decay_steps</code>: 1e4<br>
+      <code>train_frequency</code>> 1<br>
+      <code>target_update_frequency</code>: 500<br>
+      <code>max_memory</code>: 1e4<br>
+      <code>batch_size</code>: 16
+    </td>
+    <td align="left">
+      <ul>
+        <li><code>`step_mul`</code> flag set to 16 during training.</li>
+        <li>failed to learn an optimal policy, gets stuck at edge of beacon.</li>
+        <li>test score evaluated over 100 episodes.</li>
+        </ul>
+      </td>
   </tr>
   <tr>
-    <td align="center">CollectMineralShards</td>
-    <td align="center"></td>
-    <td align="center"></td>
-    <td align="center"></td>
-    <td align="left"></td>
-    <td align="left"></td>
+    <td align="center">
+      MoveToBeacon<br>
+      (run 2)<br>
+      <a href="https://drive.google.com/open?id=1GAoxY1fEkDH8LO2_IwigYpTmsuGstyxn">checkpoint</a>
+    </td>
+    <td align="center">
+      ~13 (mean)<br>
+      21 (max)
+    </td>
+    <td align="center">
+      1,000 (~120,000 steps)
+    </td>
+    <td align="left">
+      <code>learning_rate</code>: 1e-5<br>
+      <code>discount_factor</code>: 0.95<br>
+      <code>epsilon_max</code>: 1.0<br>
+      <code>epsilon_min</code>: 0.1<br>
+      <code>epsilon_decay_steps</code>: 2e4<br>
+      <code>train_frequency</code>> 1<br>
+      <code>target_update_frequency</code>: 1000<br>
+      <code>max_memory</code>: 1e4<br>
+      <code>batch_size</code>: 16
+    </td>
+    <td align="left">
+      <li><code>`step_mul`</code> flag set to 16 during training.</li>
+      <li>gets stuck at edge of some beacon positions.</li>
+      <li>test score evaluated over 100 episodes.</li>
+    </td>
   </tr>
 </table>
 
