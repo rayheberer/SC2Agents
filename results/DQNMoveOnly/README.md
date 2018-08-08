@@ -69,8 +69,8 @@ The action-reward-next_state data used as inputs during the gradient updates to 
       <a href="https://drive.google.com/open?id=1GAoxY1fEkDH8LO2_IwigYpTmsuGstyxn">checkpoint</a>
     </td>
     <td align="center">
-      ~13 (mean)<br>
-      21 (max)
+      <strong>~13</strong> (mean)<br>
+      <strong>21</strong> (max)
     </td>
     <td align="center">
       1,000 (~120,000 steps)
