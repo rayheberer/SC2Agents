@@ -59,8 +59,8 @@ The action-reward-next_state data used as inputs during the gradient updates to 
         <li><code>step_mul</code> flag set to 16 during training.</li>
         <li>failed to learn an optimal policy, gets stuck at edge of beacon.</li>
         <li>test score evaluated over 100 episodes with epsilon=0.</li>
-        </ul>
-      </td>
+      </ul>
+    </td>
   </tr>
   <tr>
     <td align="center">
@@ -87,11 +87,13 @@ The action-reward-next_state data used as inputs during the gradient updates to 
       <code>batch_size</code>: 16
     </td>
     <td align="left">
-      <li><code>step_mul</code> flag set to 16 during training.</li>
-      <li><code>step_mul</code> flag set to 16 during testing.</li>
-      <li>test score evaluated over 100 episodes with epsilon=0.</li>
-      <li>policy does not generalize well to a <code>step_mul</code> of 8, agent gets stuck at edge of some beacon positions.</li>
-      <li>test score with <code>step_mul</code>=8: ~13 (mean), 21 (max).</li>
+      <ul>
+        <li><code>step_mul</code> flag set to 16 during training.</li>
+        <li><code>step_mul</code> flag set to 16 during testing.</li>
+        <li>test score evaluated over 100 episodes with epsilon=0.</li>
+        <li>policy does not generalize well to a <code>step_mul</code> of 8, agent gets stuck at edge of some beacon positions.</li>
+        <li>test score with <code>step_mul</code>=8: ~13 (mean), 21 (max).</li>
+      </ul>
     </td>
   </tr>
 </table>
