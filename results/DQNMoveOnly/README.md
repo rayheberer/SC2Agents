@@ -49,7 +49,7 @@ The action-reward-next_state data used as inputs during the gradient updates to 
       <code>epsilon_max</code>: 1.0<br>
       <code>epsilon_min</code>: 0.01<br>
       <code>epsilon_decay_steps</code>: 1e4<br>
-      <code>train_frequency</code>> 1<br>
+      <code>train_frequency</code>: 1<br>
       <code>target_update_frequency</code>: 500<br>
       <code>max_memory</code>: 1e4<br>
       <code>batch_size</code>: 16
@@ -81,7 +81,7 @@ The action-reward-next_state data used as inputs during the gradient updates to 
       <code>epsilon_max</code>: 1.0<br>
       <code>epsilon_min</code>: 0.1<br>
       <code>epsilon_decay_steps</code>: 2e4<br>
-      <code>train_frequency</code>> 1<br>
+      <code>train_frequency</code>: 1<br>
       <code>target_update_frequency</code>: 1000<br>
       <code>max_memory</code>: 1e4<br>
       <code>batch_size</code>: 16
