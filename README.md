@@ -32,6 +32,8 @@ http://us.battle.net/sc2/en/legacy-of-the-void/
 
 PySC2 expects the game to be installed in `~/StarCraftII/`, but this can be overriden by setting the `SC2PATH` environment variable.
 
+The starter edition is sufficient.
+
 ### 3. Download Maps
 
 Download the [ladder maps](https://github.com/Blizzard/s2client-proto#downloads)
