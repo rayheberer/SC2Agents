@@ -159,7 +159,7 @@ class PlayerRelativeMovementCNN(object):
             self.max_q = tf.reduce_max(self.flatten, name='max')
             self.mean_q = tf.reduce_mean(self.flatten, name='mean')
 
-            # optimization: RMSE between state predicted Q and target Q
+            # optimization: MSE between state predicted Q and target Q
             self.prediction = tf.reduce_sum(
                 tf.multiply(self.flatten, self.actions),
                 axis=1,
