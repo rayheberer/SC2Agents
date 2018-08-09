@@ -55,11 +55,6 @@ class PlayerRelativeMovementCNN(object):
         self.writer.add_summary(summary, global_episode - 1)
         self.writer.flush
 
-    def run_init_op(self, sess):
-        """Initialize tensorflow variables."""
-        init_op = tf.global_variables_initializer()
-        sess.run(init_op)
-
     def optimizer_op(self, sess, states, actions, targets):
         """Perform one iteration of gradient updates."""
         loss, _ = sess.run(
