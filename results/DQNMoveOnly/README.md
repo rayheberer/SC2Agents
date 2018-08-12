@@ -96,6 +96,35 @@ The action-reward-next_state data used as inputs during the gradient updates to 
       </ul>
     </td>
   </tr>
+  <tr>
+    <td align="center">
+      CollectMineralShards<br>
+      (run 1)
+    </td>
+    <td align="center">
+      (mean)<br>
+      (max)
+    </td>
+    <td align="center">
+      1,000 (~120,000 steps)
+    </td>
+    <td align="left">
+      <code>learning_rate</code>: 1e-5<br>
+      <code>discount_factor</code>: 0.95<br>
+      <code>epsilon_max</code>: 1.0<br>
+      <code>epsilon_min</code>: 0.05<br>
+      <code>epsilon_decay_steps</code>: 4e4<br>
+      <code>train_frequency</code>: 1<br>
+      <code>target_update_frequency</code>: 1000<br>
+      <code>max_memory</code>: 1e4<br>
+      <code>batch_size</code>: 16
+    </td>
+    <td align="left">
+      <ul>
+        <li>test score evaluated over 100 episodes with epsilon=0.</li>
+      </ul>
+    </td>
+  </tr>
 </table>
 
 ## Training Notes/Caveats
