@@ -99,11 +99,12 @@ The action-reward-next_state data used as inputs during the gradient updates to 
   <tr>
     <td align="center">
       CollectMineralShards<br>
-      (run 1)
+      (run 1)<br>
+      <a href="https://drive.google.com/open?id=1e0qagPJUcnby5xxDIoI1rb6XNnqYTg9o">checkpoint</a>
     </td>
     <td align="center">
-      (mean)<br>
-      (max)
+      <strong>~75</strong> (mean)<br>
+      <strong>99</strong> (max)
     </td>
     <td align="center">
       1,000 (~120,000 steps)
@@ -122,6 +123,7 @@ The action-reward-next_state data used as inputs during the gradient updates to 
     <td align="left">
       <ul>
         <li>test score evaluated over 100 episodes with epsilon=0.</li>
+        <li>has learned to collect roughly from left to right, with inefficient vertical oscillations.</li>
       </ul>
     </td>
   </tr>

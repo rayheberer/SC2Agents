@@ -17,11 +17,14 @@ Replays and Tensorboard metrics for each individual run are stored in correspond
       Mean Score: ~20<br>
       Max Score: 23
     </td>
-    <td align="center"></td>
+    <td align="right">
+      Mean Score: ~75<br>
+      Max Score: 99
+    </td>
   </tr>
   <tr>
-    <td align="center"></td>
-    <td align="center"></td>
-    <td align="center"></td>
+    <td align="right"></td>
+    <td align="right"></td>
+    <td align="right"></td>
   </tr>
 </table>
