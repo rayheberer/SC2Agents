@@ -130,36 +130,23 @@ class DQNMoveOnly(base_agent.BaseAgent):
     def reset(self):
         """Handle the beginning of new episodes."""
         self.episodes += 1
-        score = self.reward
         self.reward = 0
 
-        # no need to save checkpoints or write summaries if not training
-        if not self.training:
-            return
+        if self.training:
+            self.last_state = None
+            self.last_action = None
 
-        self.last_state = None
-        self.last_action = None
-        self.network.increment_global_episode_op(self.sess)
-        episode = self.network.global_episode.eval(session=self.sess)
-        print("Global episode:", episode)
-
-        # don't do anything else for 1st episode
-        if self.episodes > 1:
-
-            # save current model
-            self.network.save_model(self.sess)
-            print("Model Saved")
-
-            # write summaries from last episode
-            states, actions, targets = self._get_batch()
-            self.network.write_summary(
-                self.sess, states, actions, targets, score)
-            print("Summary Written")
+            episode = self.network.global_episode.eval(session=self.sess)
+            print("Global training episode:", episode)
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
         self.steps += 1
         self.reward += obs.reward
+
+        # handle end of episode if terminal step
+        if self.training and obs.step_type == 2:
+            self._handle_episode_end()
 
         if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
             state = obs.observation.feature_screen.player_relative
@@ -203,6 +190,21 @@ class DQNMoveOnly(base_agent.BaseAgent):
                 return FUNCTIONS.Move_screen("now", (x, y))
         else:
             return FUNCTIONS.select_army("select")
+
+    def _handle_episode_end(self):
+        """Save weights and write summaries."""
+        # save current model
+        self.network.save_model(self.sess)
+        print("Model Saved")
+
+        # write summaries from last episode
+        states, actions, targets = self._get_batch()
+        self.network.write_summary(
+            self.sess, states, actions, targets, self.reward)
+        print("Summary Written")
+
+        # increment global training episode
+        self.network.increment_global_episode_op(self.sess)
 
     def _tf_init_op(self):
         init_op = tf.global_variables_initializer()

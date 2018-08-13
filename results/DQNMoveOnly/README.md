@@ -100,7 +100,7 @@ The action-reward-next_state data used as inputs during the gradient updates to 
     <td align="center">
       CollectMineralShards<br>
       (run 1)<br>
-      <a href="https://drive.google.com/open?id=1e0qagPJUcnby5xxDIoI1rb6XNnqYTg9o">checkpoint</a>
+      <a href="https://drive.google.com/open?id=1feaeCrnAfU7n5_EEcqqB0s6qS5HED5bB">checkpoint</a>
     </td>
     <td align="center">
       <strong>~75</strong> (mean)<br>
@@ -132,5 +132,3 @@ The action-reward-next_state data used as inputs during the gradient updates to 
 ## Training Notes/Caveats
 * The Experience Replay buffer does not persist over multiple runs, and is repopulated from scratch each time.
 * The target network is updated at the beginning of each new run, even when restoring the online network from a checkpoint.
-* Tensorboard summaries are written at the beginning of each episode, for the previous episode. The last episode of a run is not summarized.
-* As with summaries, network weights for the last episode of a run are not saved.
