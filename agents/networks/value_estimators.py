@@ -8,13 +8,13 @@ class PlayerRelativeMovementCNN(object):
     """Uses feature_screen.player_relative to assign q value to movements."""
 
     def __init__(self,
-                 spacial_dimensions,
+                 spatial_dimensions,
                  learning_rate,
                  save_path=None,
                  summary_path=None,
                  name='DQN'):
-        """Initialize instance-specific hyperparameters."""
-        self.spacial_dimensions = spacial_dimensions
+        """Initialize instance-specific hyperparameters, build tf graph."""
+        self.spatial_dimensions = spatial_dimensions
         self.learning_rate = learning_rate
         self.name = name
         self.save_path = save_path
@@ -90,12 +90,12 @@ class PlayerRelativeMovementCNN(object):
             # placeholders
             self.inputs = tf.placeholder(
                 tf.int32,
-                [None, *self.spacial_dimensions],
+                [None, *self.spatial_dimensions],
                 name='inputs')
 
             self.actions = tf.placeholder(
                 tf.float32,
-                [None, np.prod(self.spacial_dimensions)],
+                [None, np.prod(self.spatial_dimensions)],
                 name='actions')
 
             self.targets = tf.placeholder(
@@ -144,7 +144,7 @@ class PlayerRelativeMovementCNN(object):
                 self.conv1,
                 name='conv1_activation')
 
-            # spacial output layer
+            # spatial output layer
             self.output = tf.layers.conv2d(
                 inputs=self.conv1_activation,
                 filters=1,

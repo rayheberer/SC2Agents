@@ -98,14 +98,14 @@ class DQNMoveOnly(base_agent.BaseAgent):
         print("Building models...")
         tf.reset_default_graph()
         self.network = nets.PlayerRelativeMovementCNN(
-            spacial_dimensions=feature_screen_size,
+            spatial_dimensions=feature_screen_size,
             learning_rate=self.learning_rate,
             save_path=self.save_path,
             summary_path=summary_path)
 
         if self.training:
             self.target_net = nets.PlayerRelativeMovementCNN(
-                spacial_dimensions=feature_screen_size,
+                spatial_dimensions=feature_screen_size,
                 learning_rate=self.learning_rate,
                 name='DQNTarget')
 
