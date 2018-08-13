@@ -43,12 +43,12 @@ and extract them to your `StarcraftII/Maps/` directory.
 ### 4. Train an Agent
 
 ```
-$ python -m run --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly
+$ python -m run --map CollectMineralShards --agent agents.deepq.DQNMoveOnly
 ```
 
 This is equivalent to:
 ```
-$ python -m pysc2.bin.agent --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly
+$ python -m pysc2.bin.agent --map CollectMineralShards --agent agents.deepq.DQNMoveOnly
 ```
 
 However, it is possible to specify agent-specific hyperparameters as flags.
@@ -57,7 +57,7 @@ Use the `--save_dir` and `--ckpt_name` flags to specify a TensorFlow checkpoint 
 
 For example, if there is a checkpoint named `DQNMoveOnly2` in `./checkpoints`, to continue training this model run:
 ```
-python -m run --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly --ckpt_name=DQNMoveOnly2
+python -m run --map CollectMineralShards --agent agents.deepq.DQNMoveOnly --ckpt_name=DQNMoveOnly2
 ```
 
 ### 5. Evaluate an Agent
@@ -67,7 +67,7 @@ $ tensorboard --logdir=./tensorboard/deepq
 ```
 
 ```
-$ python -m run --map MoveToCheckpoint --agent deepq_agents.DQNMoveOnly --training=False
+$ python -m run --map CollectMineralShards --agent agents.deepq.DQNMoveOnly --training=False
 ```
 
 

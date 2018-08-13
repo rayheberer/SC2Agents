@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 
 # local submodule
-import networks.value_estimators as nets
+import agents.networks.value_estimators as nets
 
 from absl import flags
 
