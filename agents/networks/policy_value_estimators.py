@@ -1,6 +1,13 @@
 """Neural networks that output both value and optimal policy estimations."""
 import tensorflow as tf
 
+import agents.networks.preprocessing as preprocessing
+
+from pysc2.lib import features
+
+SCREEN_FEATURES = features.SCREEN_FEATURES
+MINIMAP_FEATURES = features.MINIMAP_FEATURES
+
 
 class AtariNet(object):
     """Estimates value and policy with shared parameters."""
@@ -25,10 +32,7 @@ class AtariNet(object):
         # setup summary writer
         if summary_path:
             self.writer = tf.summary.FileWriter(summary_path)
-            tf.summary.scalar("Loss", self.loss)
             tf.summary.scalar("Score", self.score)
-            tf.summary.scalar("Batch_Max_Q", self.max_q)
-            tf.summary.scalar("Batch_Mean_Q", self.mean_q)
             self.write_op = tf.summary.merge_all()
 
         # setup model saver
@@ -43,21 +47,22 @@ class AtariNet(object):
         """Restore from ckpt."""
         self.saver.restore(sess, self.save_path)
 
-    def write_summary(self, sess, states, actions, targets, score):
+    def write_summary(self, sess, score):
         """Write summary to Tensorboard."""
         global_episode = self.global_episode.eval(session=sess)
         summary = sess.run(
             self.write_op,
-            feed_dict={self.inputs: states,
-                       self.actions: actions,
-                       self.targets: targets,
-                       self.score: score})
+            feed_dict={self.score: score})
         self.writer.add_summary(summary, global_episode - 1)
         self.writer.flush
 
     def increment_global_episode_op(self, sess):
         """Increment the global episode tracker."""
         sess.run(self.increment_global_episode)
+
+    def optimizer_op(self):
+        """Perform one iteration of gradient updates."""
+        raise NotImplementedError
 
     def _build(self):
         """Construct graph."""
@@ -82,20 +87,27 @@ class AtariNet(object):
             # placeholders
             self.screen_features = tf.placeholder(
                 tf.int32,
-                [*self.screen_dimensions, 17],
+                [len(SCREEN_FEATURES), *self.screen_dimensions],
                 name='screen_features')
 
             self.minimap_features = tf.placeholder(
                 tf.int32,
-                [*self.minimap_dimensions, 7],
+                [len(MINIMAP_FEATURES), *self.minimap_dimensions],
                 name='minimap_features')
 
-            self.nonspatial_features = tf.placeholder(
+            self.flat_features = tf.placeholder(
                 tf.int32,
-                [],
-                name='nonspatial_features')
+                [len(features.Player)],
+                name='flat_features')
 
             # preprocessing
+            self.screen_processed = preprocessing.preprocess_spatial_features(
+                self.screen_features,
+                screen=True)
+
+            self.minimap_processed = preprocessing.preprocess_spatial_features(
+                self.minimap_features,
+                screen=False)
 
             # convolutional layers for screen features
 
