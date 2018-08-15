@@ -219,8 +219,17 @@ class AtariNet(object):
                 name="function_policy")
 
             # action function argument policies (nonspatial)
+            self.argument_policies = dict()
+            for arg_type in actions.TYPES:
 
-            # action function argument policies (x and y)
+                # for spatial actions, represent each dimension independently
+                for i in range(len(arg_type.sizes)):
+                    arg_policy = tf.layers.dense(
+                        inputs=self.state_representation,
+                        units=arg_type.sizes[i],
+                        activation=tf.nn.softmax)
+
+                    self.argument_policies[str(arg_type) + str(i)] = arg_policy
 
             # value estimation
             self.value_estimate = tf.layers.dense(
