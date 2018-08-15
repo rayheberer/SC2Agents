@@ -86,12 +86,23 @@ class A2C(base_agent.BaseAgent):
         if self.training and obs.step_type == 2:
             self._handle_episode_end()
 
-        screen_feats = obs.observation.feature_screen
-        feats = self.sess.run(
-            self.network.screen_processed,
-            feed_dict={self.network.screen_features: screen_feats})
+        # get observations of state
+        observation = obs.observation
+        screen_features = observation.feature_screen
+        minimap_features = observation.feature_minimap
+        flat_features = observation.player
 
-        print(feats.shape)
+        available_actions = observation.available_actions
+
+        state = self.sess.run(
+            self.network.state_representation,
+            feed_dict={self.network.screen_features: screen_features,
+                       self.network.minimap_features: minimap_features,
+                       self.network.flat_features: flat_features})
+
+        print(state.shape)
+        print(state)
+
         return FUNCTIONS.no_op()
 
     def _handle_episode_end(self):
