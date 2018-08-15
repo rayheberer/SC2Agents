@@ -107,7 +107,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             self.target_net = nets.PlayerRelativeMovementCNN(
                 spatial_dimensions=feature_screen_size,
                 learning_rate=self.learning_rate,
-                name='DQNTarget')
+                name="DQNTarget")
 
             # initialize Experience Replay memory buffer
             self.memory = Memory(max_memory)
@@ -183,7 +183,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
                     state,
                     self.epsilon_min)
 
-            if self.indicate_nonrandom_action and action == 'nonrandom':
+            if self.indicate_nonrandom_action and action == "nonrandom":
                 # cosmetic difference between random and Q based actions
                 return FUNCTIONS.Attack_screen("now", (x, y))
             else:
@@ -212,9 +212,9 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
     def _update_target_network(self):
         online_vars = tf.get_collection(
-            tf.GraphKeys.TRAINABLE_VARIABLES, 'DQN')
+            tf.GraphKeys.TRAINABLE_VARIABLES, "DQN")
         target_vars = tf.get_collection(
-            tf.GraphKeys.TRAINABLE_VARIABLES, 'DQNTarget')
+            tf.GraphKeys.TRAINABLE_VARIABLES, "DQNTarget")
 
         update_op = []
         for online_var, target_var in zip(online_vars, target_vars):
@@ -236,7 +236,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             x = np.random.randint(0, feature_screen_size[0])
             y = np.random.randint(0, feature_screen_size[1])
 
-            return x, y, 'random'
+            return x, y, "random"
 
         else:
             inputs = np.expand_dims(state, 0)
@@ -247,7 +247,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
             max_index = np.argmax(q_values)
             x, y = np.unravel_index(max_index, feature_screen_size)
-            return x, y, 'nonrandom'
+            return x, y, "nonrandom"
 
     def _train_network(self):
         states, actions, targets = self._get_batch()

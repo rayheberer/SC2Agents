@@ -12,7 +12,7 @@ class PlayerRelativeMovementCNN(object):
                  learning_rate,
                  save_path=None,
                  summary_path=None,
-                 name='DQN'):
+                 name="DQN"):
         """Initialize instance-specific hyperparameters, build tf graph."""
         self.spatial_dimensions = spatial_dimensions
         self.learning_rate = learning_rate
@@ -74,46 +74,46 @@ class PlayerRelativeMovementCNN(object):
             self.score = tf.placeholder(
                 tf.int32,
                 [],
-                name='score')
+                name="score")
 
             # global step trackers for multiple runs restoring from ckpt
             self.global_step = tf.Variable(
                 0,
                 trainable=False,
-                name='global_step')
+                name="global_step")
 
             self.global_episode = tf.Variable(
                 0,
                 trainable=False,
-                name='global_episode')
+                name="global_episode")
 
             # placeholders
             self.inputs = tf.placeholder(
                 tf.int32,
                 [None, *self.spatial_dimensions],
-                name='inputs')
+                name="inputs")
 
             self.actions = tf.placeholder(
                 tf.float32,
                 [None, np.prod(self.spatial_dimensions)],
-                name='actions')
+                name="actions")
 
             self.targets = tf.placeholder(
                 tf.float32,
                 [None],
-                name='targets')
+                name="targets")
 
             self.increment_global_episode = tf.assign(
                 self.global_episode,
                 self.global_episode + 1,
-                name='increment_global_episode')
+                name="increment_global_episode")
 
             # spatial coordinates are given in y-major screen coordinate space
             # transpose them to (x, y) space before beginning
             self.transposed = tf.transpose(
                 self.inputs,
                 perm=[0, 2, 1],
-                name='transpose')
+                name="transpose")
 
             # embed layer (one-hot in channel dimension, 1x1 convolution)
             # the player_relative feature layer has 5 categorical values
@@ -121,15 +121,15 @@ class PlayerRelativeMovementCNN(object):
                 self.transposed,
                 depth=5,
                 axis=-1,
-                name='one_hot')
+                name="one_hot")
 
             self.embed = tf.layers.conv2d(
                 inputs=self.one_hot,
                 filters=1,
                 kernel_size=[1, 1],
                 strides=[1, 1],
-                padding='SAME',
-                name='embed')
+                padding="SAME",
+                name="embed")
 
             # convolutional layer
             self.conv1 = tf.layers.conv2d(
@@ -137,12 +137,12 @@ class PlayerRelativeMovementCNN(object):
                 filters=16,
                 kernel_size=[3, 3],
                 strides=[1, 1],
-                padding='SAME',
-                name='conv1')
+                padding="SAME",
+                name="conv1")
 
             self.conv1_activation = tf.nn.relu(
                 self.conv1,
-                name='conv1_activation')
+                name="conv1_activation")
 
             # spatial output layer
             self.output = tf.layers.conv2d(
@@ -150,24 +150,24 @@ class PlayerRelativeMovementCNN(object):
                 filters=1,
                 kernel_size=[1, 1],
                 strides=[1, 1],
-                padding='SAME',
-                name='output')
+                padding="SAME",
+                name="output")
 
-            self.flatten = tf.layers.flatten(self.output, name='flat')
+            self.flatten = tf.layers.flatten(self.output, name="flat")
 
             # value estimate trackers for summaries
-            self.max_q = tf.reduce_max(self.flatten, name='max')
-            self.mean_q = tf.reduce_mean(self.flatten, name='mean')
+            self.max_q = tf.reduce_max(self.flatten, name="max")
+            self.mean_q = tf.reduce_mean(self.flatten, name="mean")
 
             # optimization: MSE between state predicted Q and target Q
             self.prediction = tf.reduce_sum(
                 tf.multiply(self.flatten, self.actions),
                 axis=1,
-                name='prediction')
+                name="prediction")
 
             self.loss = tf.reduce_mean(
                 tf.square(self.targets - self.prediction),
-                name='loss')
+                name="loss")
 
             self.optimizer = tf.train.RMSPropOptimizer(
                 self.learning_rate).minimize(self.loss,

@@ -26,13 +26,13 @@ def preprocess_spatial_features(features, screen=True):
     transposed = tf.transpose(
         features,
         perm=[2, 1, 0],
-        name='transpose')
+        name="transpose")
 
     # expand dims so conv layers will work
     expanded = tf.expand_dims(
         transposed,
         axis=0,
-        name='expand_dims')
+        name="expand_dims")
 
     preprocess_ops = []
     for index, (feature_type, scale) in enumerate(feature_specs):
@@ -44,20 +44,20 @@ def preprocess_spatial_features(features, screen=True):
                 layer,
                 depth=scale,
                 axis=-1,
-                name='one_hot')
+                name="one_hot")
 
             embed = tf.layers.conv2d(
                 inputs=one_hot,
                 filters=1,
                 kernel_size=[1, 1],
                 strides=[1, 1],
-                padding='SAME')
+                padding="SAME")
 
             preprocess_ops.append(tf.squeeze(embed))
         else:
             transform = tf.log(
                 tf.cast(layer, tf.float32) + 1.,
-                name='log')
+                name="log")
 
             preprocess_ops.append(tf.squeeze(transform))
 
