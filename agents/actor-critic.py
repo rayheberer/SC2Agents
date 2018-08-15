@@ -19,6 +19,8 @@ feature_minimap_size = FLAGS.feature_minimap_size
 
 # pysc2 convenience
 FUNCTIONS = sc2_actions.FUNCTIONS
+FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
+FunctionCall = sc2_actions.FunctionCall
 
 
 class A2C(base_agent.BaseAgent):
@@ -92,21 +94,78 @@ class A2C(base_agent.BaseAgent):
         screen_features = observation.feature_screen
         minimap_features = observation.feature_minimap
         flat_features = observation.player
+        available_actions = observation.available_actions
 
-        action_mask = np.zeros((1, len(FUNCTIONS)), dtype=np.int32)
-        action_mask[0, observation.available_actions] = 1
+        # sample action (function identifier and arguments) from policy
+        action_id, args = self._sample_action(
+            screen_features,
+            minimap_features,
+            flat_features,
+            available_actions)
 
-        policy = self.sess.run(
+        return FunctionCall(action_id, args)
+
+    def _sample_action(self,
+                       screen_features,
+                       minimap_features,
+                       flat_features,
+                       available_actions):
+        """Sample actions and arguments from policy output layers."""
+        action_mask = np.zeros(len(FUNCTIONS), dtype=np.int32)
+        action_mask[available_actions] = 1
+
+        feed_dict = {self.network.screen_features: screen_features,
+                     self.network.minimap_features: minimap_features,
+                     self.network.flat_features: flat_features}
+
+        function_id_policy = self.sess.run(
             self.network.function_policy,
-            feed_dict={self.network.screen_features: screen_features,
-                       self.network.minimap_features: minimap_features,
-                       self.network.flat_features: flat_features})
+            feed_dict=feed_dict)
 
-        policy = policy * action_mask
-        print(policy.shape)
-        print(policy)
+        function_id_policy *= action_mask
+        function_ids = np.arange(len(function_id_policy))
 
-        return FUNCTIONS.no_op()
+        # renormalize distribution over function identifiers
+        function_id_policy /= np.sum(function_id_policy)
+
+        # sample function identifier
+        action_id = np.random.choice(
+            function_ids,
+            p=np.squeeze(function_id_policy))
+
+        # sample function arguments
+        arg_types = FUNCTION_TYPES[FUNCTIONS[action_id].function_type]
+        args = []
+        for arg_type in arg_types:
+            if len(arg_type.sizes) > 1:
+                # this is a spatial action
+                x_policy = self.sess.run(
+                    self.network.argument_policies[str(arg_type) + "x"],
+                    feed_dict=feed_dict)
+
+                y_policy = self.sess.run(
+                    self.network.argument_policies[str(arg_type) + "y"],
+                    feed_dict=feed_dict)
+
+                x_policy = np.squeeze(x_policy)
+                x_ids = np.arange(len(x_policy))
+                x = np.random.choice(x_ids, p=x_policy)
+
+                y_policy = np.squeeze(y_policy)
+                y_ids = np.arange(len(y_policy))
+                y = np.random.choice(y_ids, p=y_policy)
+                args.append([x, y])
+            else:
+                arg_policy = self.sess.run(
+                    self.network.argument_policies[str(arg_type)],
+                    feed_dict=feed_dict)
+
+                arg_policy = np.squeeze(arg_policy)
+                arg_ids = np.arange(len(arg_policy))
+                arg_index = np.random.choice(arg_ids, p=arg_policy)
+                args.append([arg_index])
+
+        return action_id, args
 
     def _handle_episode_end(self):
         """Save weights and write summaries."""

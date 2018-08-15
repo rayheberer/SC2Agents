@@ -10,6 +10,10 @@ MINIMAP_FEATURES = features.MINIMAP_FEATURES
 
 NUM_ACTIONS = len(actions.FUNCTIONS)
 
+# manually state the argument types which take points on screen/minimap
+SCREEN_TYPES = [actions.TYPES[0], actions.TYPES[2]]
+MINIMAP_TYPES = [actions.TYPES[1]]
+
 
 class AtariNet(object):
     """Estimates value and policy with shared parameters."""
@@ -223,13 +227,32 @@ class AtariNet(object):
             for arg_type in actions.TYPES:
 
                 # for spatial actions, represent each dimension independently
-                for i in range(len(arg_type.sizes)):
-                    arg_policy = tf.layers.dense(
+                if len(arg_type.sizes) > 1:
+                    if arg_type in SCREEN_TYPES:
+                        units = self.screen_dimensions
+                    elif arg_type in MINIMAP_TYPES:
+                        units = self.minimap_dimensions
+
+                    arg_policy_x = tf.layers.dense(
                         inputs=self.state_representation,
-                        units=arg_type.sizes[i],
+                        units=units[0],
                         activation=tf.nn.softmax)
 
-                    self.argument_policies[str(arg_type) + str(i)] = arg_policy
+                    arg_policy_y = tf.layers.dense(
+                        inputs=self.state_representation,
+                        units=units[1],
+                        activation=tf.nn.softmax)
+
+                    self.argument_policies[str(arg_type) + "x"] = arg_policy_x
+                    self.argument_policies[str(arg_type) + "y"] = arg_policy_y
+
+                else:
+                    arg_policy = tf.layers.dense(
+                        inputs=self.state_representation,
+                        units=arg_type.sizes[0],
+                        activation=tf.nn.softmax)
+
+                    self.argument_policies[str(arg_type)] = arg_policy
 
             # value estimation
             self.value_estimate = tf.layers.dense(
