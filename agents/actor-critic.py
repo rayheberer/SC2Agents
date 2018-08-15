@@ -1,4 +1,5 @@
 """Actor-critic agents."""
+import numpy as np
 import os
 import tensorflow as tf
 
@@ -92,16 +93,18 @@ class A2C(base_agent.BaseAgent):
         minimap_features = observation.feature_minimap
         flat_features = observation.player
 
-        available_actions = observation.available_actions
+        action_mask = np.zeros((1, len(FUNCTIONS)), dtype=np.int32)
+        action_mask[0, observation.available_actions] = 1
 
-        state = self.sess.run(
-            self.network.state_representation,
+        policy = self.sess.run(
+            self.network.function_policy,
             feed_dict={self.network.screen_features: screen_features,
                        self.network.minimap_features: minimap_features,
                        self.network.flat_features: flat_features})
 
-        print(state.shape)
-        print(state)
+        policy = policy * action_mask
+        print(policy.shape)
+        print(policy)
 
         return FUNCTIONS.no_op()
 

@@ -3,10 +3,12 @@ import tensorflow as tf
 
 import agents.networks.preprocessing as preprocessing
 
-from pysc2.lib import features
+from pysc2.lib import actions, features
 
 SCREEN_FEATURES = features.SCREEN_FEATURES
 MINIMAP_FEATURES = features.MINIMAP_FEATURES
+
+NUM_ACTIONS = len(actions.FUNCTIONS)
 
 
 class AtariNet(object):
@@ -84,7 +86,7 @@ class AtariNet(object):
                 trainable=False,
                 name="global_episode")
 
-            # placeholders
+            # state placeholders
             self.screen_features = tf.placeholder(
                 tf.int32,
                 [len(SCREEN_FEATURES), *self.screen_dimensions],
@@ -99,6 +101,13 @@ class AtariNet(object):
                 tf.float32,
                 [len(features.Player)],
                 name="flat_features")
+
+            self.available_actions = tf.placeholder(
+                tf.float32,
+                [None],
+                name="available_actions")
+
+            # target placeholders
 
             # preprocessing (expand dims used because batch size is always 1)
             self.screen_processed = preprocessing.preprocess_spatial_features(
@@ -182,29 +191,32 @@ class AtariNet(object):
                 name="flat_linear")
 
             # flatten and concatenate
-            self.screen_flat = tf.squeeze(
-                tf.layers.flatten(self.screen_activation2),
+            self.screen_flat = tf.layers.flatten(
+                self.screen_activation2,
                 name="screen_flat")
 
-            self.minimap_flat = tf.squeeze(
-                tf.layers.flatten(self.minimap_activation2),
+            self.minimap_flat = tf.layers.flatten(
+                self.minimap_activation2,
                 name="minimap_flat")
 
-            self.flat = tf.squeeze(self.flat_linear)
-
             self.concat = tf.concat(
-                values=[self.screen_flat, self.minimap_flat, self.flat],
-                axis=0,
+                values=[self.screen_flat, self.minimap_flat, self.flat_linear],
+                axis=1,
                 name="concat")
 
             # linear layer with ReLU activation
             self.state_representation = tf.layers.dense(
-                inputs=tf.expand_dims(self.concat, 0),
+                inputs=self.concat,
                 units=256,
                 activation=tf.nn.relu,
                 name="state_representation")
 
             # action function identifier policy
+            self.function_policy = tf.squeeze(tf.layers.dense(
+                inputs=self.state_representation,
+                units=NUM_ACTIONS,
+                activation=tf.nn.softmax),
+                name="function_policy")
 
             # action function argument policies (nonspatial)
 
