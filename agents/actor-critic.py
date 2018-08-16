@@ -8,6 +8,8 @@ import agents.networks.policy_value_estimators as nets
 
 from absl import flags
 
+from collections import deque
+
 from pysc2.agents import base_agent
 from pysc2.lib import actions as sc2_actions
 
@@ -22,13 +24,20 @@ FUNCTIONS = sc2_actions.FUNCTIONS
 FUNCTION_TYPES = sc2_actions.FUNCTION_TYPES
 FunctionCall = sc2_actions.FunctionCall
 
+# manually state the argument types which take points on screen/minimap
+SCREEN_TYPES = [sc2_actions.TYPES[0], sc2_actions.TYPES[2]]
+MINIMAP_TYPES = [sc2_actions.TYPES[1]]
+
 
 class A2C(base_agent.BaseAgent):
     """Synchronous version of DeepMind baseline Advantage actor-critic."""
 
     def __init__(self,
                  learning_rate=FLAGS.learning_rate,
+                 value_gradient_strength=FLAGS.value_gradient_strength,
+                 regularization_strength=FLAGS.regularization_strength,
                  discount_factor=FLAGS.discount_factor,
+                 trajectory_training_steps=FLAGS.trajectory_training_steps,
                  training=FLAGS.training,
                  save_dir="./checkpoints",
                  ckpt_name="A2C",
@@ -48,6 +57,9 @@ class A2C(base_agent.BaseAgent):
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
 
+        # agent hyperparameters
+        self.trajectory_training_steps = trajectory_training_steps
+
         # other parameters
         self.training = training
 
@@ -58,7 +70,9 @@ class A2C(base_agent.BaseAgent):
         self.network = nets.AtariNet(
             screen_dimensions=feature_screen_size,
             minimap_dimensions=feature_minimap_size,
-            learning_rate=self.learning_rate,
+            learning_rate=learning_rate,
+            value_gradient_strength=value_gradient_strength,
+            regularization_strength=regularization_strength,
             save_path=self.save_path,
             summary_path=summary_path)
 
@@ -77,6 +91,10 @@ class A2C(base_agent.BaseAgent):
         self.reward = 0
 
         if self.training:
+            self.last_action = None
+            self.state_buffer = deque(maxlen=self.trajectory_training_steps)
+            self.action_buffer = deque(maxlen=self.trajectory_training_steps)
+            self.reward_buffer = deque(maxlen=self.trajectory_training_steps)
             episode = self.network.global_episode.eval(session=self.sess)
             print("Global training episode:", episode)
 
@@ -91,17 +109,34 @@ class A2C(base_agent.BaseAgent):
 
         # get observations of state
         observation = obs.observation
+        # expand so they form a batch of 1
         screen_features = observation.feature_screen
         minimap_features = observation.feature_minimap
         flat_features = observation.player
         available_actions = observation.available_actions
 
         # sample action (function identifier and arguments) from policy
-        action_id, args = self._sample_action(
+        action_id, args, arg_types = self._sample_action(
             screen_features,
             minimap_features,
             flat_features,
             available_actions)
+
+        # train model
+        if self.training:
+            if self.last_action:
+                # most recent steps on the left of the deques
+                self.state_buffer.appendleft((screen_features,
+                                              minimap_features,
+                                              flat_features))
+                self.action_buffer.appendleft(self.last_action)
+                self.reward_buffer.appendleft(obs.reward)
+
+            # cut trajectory and train model
+            if self.steps % self.trajectory_training_steps == 0:
+                self._train_network()
+
+            self.last_action = [action_id, args, arg_types]
 
         return FunctionCall(action_id, args)
 
@@ -111,6 +146,10 @@ class A2C(base_agent.BaseAgent):
                        flat_features,
                        available_actions):
         """Sample actions and arguments from policy output layers."""
+        screen_features = np.expand_dims(screen_features, 0)
+        minimap_features = np.expand_dims(minimap_features, 0)
+        flat_features = np.expand_dims(flat_features, 0)
+
         action_mask = np.zeros(len(FUNCTIONS), dtype=np.int32)
         action_mask[available_actions] = 1
 
@@ -140,11 +179,11 @@ class A2C(base_agent.BaseAgent):
             if len(arg_type.sizes) > 1:
                 # this is a spatial action
                 x_policy = self.sess.run(
-                    self.network.argument_policies[str(arg_type) + "x"],
+                    self.network.argument_policy[str(arg_type) + "x"],
                     feed_dict=feed_dict)
 
                 y_policy = self.sess.run(
-                    self.network.argument_policies[str(arg_type) + "y"],
+                    self.network.argument_policy[str(arg_type) + "y"],
                     feed_dict=feed_dict)
 
                 x_policy = np.squeeze(x_policy)
@@ -157,7 +196,7 @@ class A2C(base_agent.BaseAgent):
                 args.append([x, y])
             else:
                 arg_policy = self.sess.run(
-                    self.network.argument_policies[str(arg_type)],
+                    self.network.argument_policy[str(arg_type)],
                     feed_dict=feed_dict)
 
                 arg_policy = np.squeeze(arg_policy)
@@ -165,7 +204,7 @@ class A2C(base_agent.BaseAgent):
                 arg_index = np.random.choice(arg_ids, p=arg_policy)
                 args.append([arg_index])
 
-        return action_id, args
+        return action_id, args, arg_types
 
     def _handle_episode_end(self):
         """Save weights and write summaries."""
@@ -184,3 +223,81 @@ class A2C(base_agent.BaseAgent):
     def _tf_init_op(self):
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
+
+    def _train_network(self):
+        feed_dict = self._get_batch()
+        self.network.optimizer_op(self.sess, feed_dict)
+
+    def _get_batch(self, terminal=False):
+        # state
+        screen = [each[0] for each in self.state_buffer]
+        minimap = [each[1] for each in self.state_buffer]
+        flat = [each[2] for each in self.state_buffer]
+
+        # actions and arguments
+        actions = [each[0] for each in self.action_buffer]
+        actions = np.eye(len(FUNCTIONS))[actions]  # one-hot encode actions
+
+        args = [each[1] for each in self.action_buffer]
+        arg_types = [each[2] for each in self.action_buffer]
+
+        # calculate discounted rewards
+        raw_rewards = list(self.reward_buffer)
+        if terminal:
+            value = 0
+        else:
+            value = np.squeeze(self.sess.run(
+                self.network.value_estimate,
+                feed_dict={self.network.screen_features: screen[-1:],
+                           self.network.minimap_features: minimap[-1:],
+                           self.network.flat_features: flat[-1:]}))
+
+        returns = []
+        # n-step discounted rewards from 1 < n < trajectory_training_steps
+        for i, reward in enumerate(raw_rewards):
+            value = reward + self.discount_factor * value
+            returns.append(value)
+
+        feed_dict = {self.network.screen_features: screen,
+                     self.network.minimap_features: minimap,
+                     self.network.flat_features: flat,
+                     self.network.actions: actions,
+                     self.network.returns: returns}
+
+        # add args and arg_types to feed_dict
+        net_args = self.network.arguments
+        batch_size = len(arg_types)
+
+        # first populate feed_dict with zero arrays
+        for arg_type in sc2_actions.TYPES:
+            if len(arg_type.sizes) > 1:
+                if arg_type in SCREEN_TYPES:
+                    x_size = feature_screen_size[0]
+                    y_size = feature_screen_size[1]
+                elif arg_type in MINIMAP_TYPES:
+                    x_size = feature_minimap_size[0]
+                    y_size = feature_minimap_size[1]
+
+                feed_dict[net_args[str(arg_type) + "x"]] = np.zeros(
+                    (batch_size, x_size))
+                feed_dict[net_args[str(arg_type) + "y"]] = np.zeros(
+                    (batch_size, y_size))
+
+            else:
+                feed_dict[net_args[str(arg_type)]] = np.zeros(
+                    (batch_size, arg_type.sizes[0]))
+
+        # then one_hot encode args
+        for step in range(batch_size):
+            for i, arg_type in enumerate(arg_types[step]):
+                if len(arg_type.sizes) > 1:
+                    arg_key_x = net_args[str(arg_type) + "x"]
+                    feed_dict[arg_key_x][step, args[step][i][0]] = 1
+
+                    arg_key_y = net_args[str(arg_type) + "x"]
+                    feed_dict[arg_key_y][step, args[step][i][1]] = 1
+                else:
+                    arg_key = net_args[str(arg_type)]
+                    feed_dict[arg_key][step, args[step][i][0]] = 1
+
+        return feed_dict

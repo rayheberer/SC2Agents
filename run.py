@@ -78,6 +78,12 @@ flags.mark_flag_as_required("map")
 # agent specific hyperparameters and settings
 flags.DEFINE_float("learning_rate", 1e-5, "Learning rate.")
 flags.DEFINE_float("discount_factor", 0.95, "Future reward discount factor.")
+flags.DEFINE_bool("training", True, "Train the model during the run.")
+flags.DEFINE_string("save_dir", None, "Where to save tensorflow ckpts.")
+flags.DEFINE_string("ckpt_name", None, "Name for ckpt files.")
+flags.DEFINE_string("summary_path", None, "Where to write tensorboard summaries.")
+
+# DQNMoveOnly
 flags.DEFINE_float("epsilon_max", 1.0, "Maximum exploration probability.")
 flags.DEFINE_float("epsilon_min", 0.01, "Minimum exploration probability.")
 flags.DEFINE_integer("epsilon_decay_steps", 10000, "Linear epsilon decay steps.")
@@ -85,82 +91,80 @@ flags.DEFINE_integer("train_frequency", 1, "How often to train network.")
 flags.DEFINE_integer("target_update_frequency", 500, "How often to update target network.")
 flags.DEFINE_integer("max_memory", 10000, "Experience replay buffer capacity.")
 flags.DEFINE_integer("batch_size", 16, "Training batch size.")
-flags.DEFINE_bool("training", True, "Train the model during the run.")
-flags.DEFINE_string("save_dir", None, "Where to save tensorflow ckpts.")
-flags.DEFINE_string("ckpt_name", None, "Name for ckpt files.")
-flags.DEFINE_string("summary_path", None, "Where to write tensorboard summaries.")
-
-# DQNMoveOnly
 flags.DEFINE_bool("indicate_nonrandom_action", False, "Show nonrandom actions.")
+
+# A2C
+flags.DEFINE_integer("trajectory_training_steps", 40, "When to cut trajectory and train network.")
+flags.DEFINE_float("value_gradient_strength", 0.5, "Scaling parameter for value estimation gradient.")
+flags.DEFINE_float("regularization_strength", 0.01, "Scaling parameter for entropy regularization.")
 
 
 def run_thread(agent_classes, players, map_name, visualize):
-  """Run one thread worth of the environment with agents."""
-  with sc2_env.SC2Env(
-      map_name=map_name,
-      players=players,
-      agent_interface_format=sc2_env.parse_agent_interface_format(
-          feature_screen=FLAGS.feature_screen_size,
-          feature_minimap=FLAGS.feature_minimap_size,
-          rgb_screen=FLAGS.rgb_screen_size,
-          rgb_minimap=FLAGS.rgb_minimap_size,
-          action_space=FLAGS.action_space,
-          use_feature_units=FLAGS.use_feature_units),
-      step_mul=FLAGS.step_mul,
-      game_steps_per_episode=FLAGS.game_steps_per_episode,
-      disable_fog=FLAGS.disable_fog,
-      visualize=visualize) as env:
-    env = available_actions_printer.AvailableActionsPrinter(env)
-    agents = [agent_cls() for agent_cls in agent_classes]
-    run_loop.run_loop(agents, env, FLAGS.max_agent_steps, FLAGS.max_episodes)
-    if FLAGS.save_replay:
-      env.save_replay(agent_classes[0].__name__)
+    """Run one thread worth of the environment with agents."""
+    with sc2_env.SC2Env(map_name=map_name,
+                        players=players,
+                        agent_interface_format=sc2_env.parse_agent_interface_format(
+                            feature_screen=FLAGS.feature_screen_size,
+                            feature_minimap=FLAGS.feature_minimap_size,
+                            rgb_screen=FLAGS.rgb_screen_size,
+                            rgb_minimap=FLAGS.rgb_minimap_size,
+                            action_space=FLAGS.action_space,
+                            use_feature_units=FLAGS.use_feature_units),
+                        step_mul=FLAGS.step_mul,
+                        game_steps_per_episode=FLAGS.game_steps_per_episode,
+                        disable_fog=FLAGS.disable_fog,
+                        visualize=visualize) as env:
+        env = available_actions_printer.AvailableActionsPrinter(env)
+        agents = [agent_cls() for agent_cls in agent_classes]
+        run_loop.run_loop(agents, env, FLAGS.max_agent_steps, FLAGS.max_episodes)
+        if FLAGS.save_replay:
+            env.save_replay(agent_classes[0].__name__)
 
 
 def main(unused_argv):
-  """Run an agent."""
-  stopwatch.sw.enabled = FLAGS.profile or FLAGS.trace
-  stopwatch.sw.trace = FLAGS.trace
+    """Run an agent."""
+    stopwatch.sw.enabled = FLAGS.profile or FLAGS.trace
+    stopwatch.sw.trace = FLAGS.trace
 
-  map_inst = maps.get(FLAGS.map)
+    map_inst = maps.get(FLAGS.map)
 
-  agent_classes = []
-  players = []
+    agent_classes = []
+    players = []
 
-  agent_module, agent_name = FLAGS.agent.rsplit(".", 1)
-  agent_cls = getattr(importlib.import_module(agent_module), agent_name)
-  agent_classes.append(agent_cls)
-  players.append(sc2_env.Agent(sc2_env.Race[FLAGS.agent_race]))
+    agent_module, agent_name = FLAGS.agent.rsplit(".", 1)
+    agent_cls = getattr(importlib.import_module(agent_module), agent_name)
+    agent_classes.append(agent_cls)
+    players.append(sc2_env.Agent(sc2_env.Race[FLAGS.agent_race]))
 
-  if map_inst.players >= 2:
-    if FLAGS.agent2 == "Bot":
-      players.append(sc2_env.Bot(sc2_env.Race[FLAGS.agent2_race],
-                                 sc2_env.Difficulty[FLAGS.difficulty]))
-    else:
-      agent_module, agent_name = FLAGS.agent2.rsplit(".", 1)
-      agent_cls = getattr(importlib.import_module(agent_module), agent_name)
-      agent_classes.append(agent_cls)
-      players.append(sc2_env.Agent(sc2_env.Race[FLAGS.agent2_race]))
+    if map_inst.players >= 2:
+        if FLAGS.agent2 == "Bot":
+            players.append(sc2_env.Bot(sc2_env.Race[FLAGS.agent2_race],
+                                       sc2_env.Difficulty[FLAGS.difficulty]))
+        else:
+            agent_module, agent_name = FLAGS.agent2.rsplit(".", 1)
+            agent_cls = getattr(importlib.import_module(agent_module), agent_name)
+            agent_classes.append(agent_cls)
+            players.append(sc2_env.Agent(sc2_env.Race[FLAGS.agent2_race]))
 
-  threads = []
-  for _ in range(FLAGS.parallel - 1):
-    t = threading.Thread(target=run_thread,
-                         args=(agent_classes, players, FLAGS.map, False))
-    threads.append(t)
-    t.start()
+    threads = []
+    for _ in range(FLAGS.parallel - 1):
+        t = threading.Thread(target=run_thread,
+                             args=(agent_classes, players, FLAGS.map, False))
+        threads.append(t)
+        t.start()
 
-  run_thread(agent_classes, players, FLAGS.map, FLAGS.render)
+    run_thread(agent_classes, players, FLAGS.map, FLAGS.render)
 
-  for t in threads:
-    t.join()
+    for t in threads:
+        t.join()
 
-  if FLAGS.profile:
-    print(stopwatch.sw)
+    if FLAGS.profile:
+        print(stopwatch.sw)
 
 
 def entry_point():  # Needed so setup.py scripts work.
-  app.run(main)
+    app.run(main)
 
 
 if __name__ == "__main__":
-  app.run(main)
+    app.run(main)

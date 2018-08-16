@@ -1,7 +1,7 @@
 """Neural networks that output both value and optimal policy estimations."""
 import tensorflow as tf
 
-import agents.networks.preprocessing as preprocessing
+from agents.networks.preprocessing import preprocess_spatial_features
 
 from pysc2.lib import actions, features
 
@@ -22,6 +22,8 @@ class AtariNet(object):
                  screen_dimensions,
                  minimap_dimensions,
                  learning_rate,
+                 value_gradient_strength,
+                 regularization_strength,
                  save_path=None,
                  summary_path=None,
                  name="AtariNet"):
@@ -29,11 +31,14 @@ class AtariNet(object):
         self.screen_dimensions = screen_dimensions
         self.minimap_dimensions = minimap_dimensions
         self.learning_rate = learning_rate
+        self.value_gradient_strength = value_gradient_strength
+        self.regularization_strength = regularization_strength
         self.name = name
         self.save_path = save_path
 
         # build graph
         self._build()
+        self._build_optimization()
 
         # setup summary writer
         if summary_path:
@@ -66,12 +71,12 @@ class AtariNet(object):
         """Increment the global episode tracker."""
         sess.run(self.increment_global_episode)
 
-    def optimizer_op(self):
+    def optimizer_op(self, sess, feed_dict):
         """Perform one iteration of gradient updates."""
-        raise NotImplementedError
+        sess.run(self.optimizer, feed_dict=feed_dict)
 
     def _build(self):
-        """Construct graph."""
+        """Construct graph for state representation."""
         with tf.variable_scope(self.name):
             # score tracker
             self.score = tf.placeholder(
@@ -93,48 +98,30 @@ class AtariNet(object):
             # state placeholders
             self.screen_features = tf.placeholder(
                 tf.int32,
-                [len(SCREEN_FEATURES), *self.screen_dimensions],
+                [None, len(SCREEN_FEATURES), *self.screen_dimensions],
                 name="screen_features")
 
             self.minimap_features = tf.placeholder(
                 tf.int32,
-                [len(MINIMAP_FEATURES), *self.minimap_dimensions],
+                [None, len(MINIMAP_FEATURES), *self.minimap_dimensions],
                 name="minimap_features")
 
             self.flat_features = tf.placeholder(
                 tf.float32,
-                [len(features.Player)],
+                [None, len(features.Player)],
                 name="flat_features")
 
-            self.available_actions = tf.placeholder(
-                tf.float32,
-                [None],
-                name="available_actions")
-
-            # target placeholders
-
-            # preprocessing (expand dims used because batch size is always 1)
-            self.screen_processed = preprocessing.preprocess_spatial_features(
+            # preprocessing
+            self.screen_processed = preprocess_spatial_features(
                 self.screen_features,
                 screen=True)
 
-            self.screen_processed = tf.expand_dims(
-                self.screen_processed,
-                axis=0,
-                name="screen_processed")
-
-            self.minimap_processed = preprocessing.preprocess_spatial_features(
+            self.minimap_processed = preprocess_spatial_features(
                 self.minimap_features,
                 screen=False)
 
-            self.minimap_processed = tf.expand_dims(
-                self.minimap_processed,
-                axis=0,
-                name="minimap_processed")
-
-            self.flat_processed = tf.expand_dims(
-                tf.log(self.flat_features + 1.),
-                0,
+            self.flat_processed = tf.log(
+                self.flat_features + 1.,
                 name="flat_processed")
 
             # convolutional layers for screen features
@@ -223,7 +210,9 @@ class AtariNet(object):
                 name="function_policy")
 
             # action function argument policies (nonspatial)
-            self.argument_policies = dict()
+            # action function argument placeholders (for optimization)
+            self.argument_policy = dict()
+            self.arguments = dict()
             for arg_type in actions.TYPES:
 
                 # for spatial actions, represent each dimension independently
@@ -243,8 +232,19 @@ class AtariNet(object):
                         units=units[1],
                         activation=tf.nn.softmax)
 
-                    self.argument_policies[str(arg_type) + "x"] = arg_policy_x
-                    self.argument_policies[str(arg_type) + "y"] = arg_policy_y
+                    self.argument_policy[str(arg_type) + "x"] = arg_policy_x
+                    self.argument_policy[str(arg_type) + "y"] = arg_policy_y
+
+                    arg_placeholder_x = tf.placeholder(
+                        tf.float32,
+                        shape=[None, units[0]])
+
+                    arg_placeholder_y = tf.placeholder(
+                        tf.float32,
+                        shape=[None, units[1]])
+
+                    self.arguments[str(arg_type) + "x"] = arg_placeholder_x
+                    self.arguments[str(arg_type) + "y"] = arg_placeholder_y
 
                 else:
                     arg_policy = tf.layers.dense(
@@ -252,7 +252,13 @@ class AtariNet(object):
                         units=arg_type.sizes[0],
                         activation=tf.nn.softmax)
 
-                    self.argument_policies[str(arg_type)] = arg_policy
+                    self.argument_policy[str(arg_type)] = arg_policy
+
+                    arg_placeholder = tf.placeholder(
+                        tf.float32,
+                        shape=[None, arg_type.sizes[0]])
+
+                    self.arguments[str(arg_type)] = arg_placeholder
 
             # value estimation
             self.value_estimate = tf.layers.dense(
@@ -261,4 +267,64 @@ class AtariNet(object):
                 activation=None,
                 name="value_estimate")
 
-            # optimization
+    def _build_optimization(self):
+            """Construct graph for network updates."""
+            # target placeholders
+            self.actions = tf.placeholder(
+                tf.float32,
+                [None, NUM_ACTIONS],
+                name="actions")
+
+            self.returns = tf.placeholder(
+                tf.float32,
+                [None],
+                name="returns")
+
+            # compute advantage
+            self.action_probability = tf.reduce_sum(
+                self.function_policy * self.actions,
+                axis=1,
+                name="action_probability")
+
+            self.args_probability = 1.
+            for arg_type in self.arguments:
+                arg_prob = tf.reduce_sum(
+                    self.arguments[arg_type] * self.argument_policy[arg_type])
+                nonzero_probs = tf.cond(
+                    tf.logical_not(tf.equal(arg_prob, 0)),
+                    true_fn=lambda: arg_prob,
+                    false_fn=lambda: 1.)
+                self.args_probability *= nonzero_probs
+
+            self.advantage = tf.subtract(
+                self.returns,
+                tf.squeeze(tf.stop_gradient(self.value_estimate)),
+                name="advantage")
+
+            # a2c gradient = policy gradient + value gradient + regularization
+            self.policy_gradient = tf.multiply(
+                self.advantage,
+                tf.log(self.action_probability * self.args_probability),
+                name="policy_gradient")
+
+            self.value_estimation_gradient = tf.multiply(
+                self.advantage,
+                tf.squeeze(self.value_estimate),
+                name="value_estimation_gradient")
+
+            # only including function identifier entropy, not args
+            self.entropy_regularization = tf.reduce_sum(
+                self.function_policy * tf.log(self.function_policy),
+                name="entropy_regularization")
+
+            self.a2c_gradient = -tf.add_n(
+                inputs=[tf.reduce_sum(self.policy_gradient),
+                        (self.value_gradient_strength *
+                         tf.reduce_sum(self.value_estimation_gradient)),
+                        (self.regularization_strength *
+                         self.entropy_regularization)],
+                name="a2c_gradient")
+
+            self.optimizer = tf.train.RMSPropOptimizer(
+                self.learning_rate).minimize(self.a2c_gradient,
+                                             global_step=self.global_step)

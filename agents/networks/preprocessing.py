@@ -22,21 +22,15 @@ def preprocess_spatial_features(features, screen=True):
     else:
         feature_specs = MINIMAP_FEATURES
 
-    # transpose from (channels, y, x) to (x, y, channels)
+    # transpose from (batch, channels, y, x) to (batch, x, y, channels)
     transposed = tf.transpose(
         features,
-        perm=[2, 1, 0],
+        perm=[0, 3, 2, 1],
         name="transpose")
-
-    # expand dims so conv layers will work
-    expanded = tf.expand_dims(
-        transposed,
-        axis=0,
-        name="expand_dims")
 
     preprocess_ops = []
     for index, (feature_type, scale) in enumerate(feature_specs):
-        layer = expanded[:, :, :, index]
+        layer = transposed[:, :, :, index]
 
         if feature_type == sc2_features.FeatureType.CATEGORICAL:
             # one-hot encode in channel dimension -> 1x1 convolution
@@ -53,13 +47,13 @@ def preprocess_spatial_features(features, screen=True):
                 strides=[1, 1],
                 padding="SAME")
 
-            preprocess_ops.append(tf.squeeze(embed))
+            preprocess_ops.append(embed)
         else:
             transform = tf.log(
                 tf.cast(layer, tf.float32) + 1.,
                 name="log")
 
-            preprocess_ops.append(tf.squeeze(transform))
+            preprocess_ops.append(tf.expand_dims(transform, -1))
 
-    preprocessed = tf.stack(preprocess_ops, -1)
+    preprocessed = tf.concat(preprocess_ops, -1)
     return preprocessed
