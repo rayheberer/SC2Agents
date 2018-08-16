@@ -1,3 +1,5 @@
+![](https://raw.githubusercontent.com/rayheberer/SC2Agents/master/results/DQNMoveOnly/MoveToBeacon/2/demo.gif)
+
 ### Hyperparameters
 `learning_rate`: 1e-5
 `discount_factor`: 0.95
