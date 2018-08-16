@@ -3,7 +3,7 @@
 ## Model Details
 
 ### Inputs/Outputs
-This model takes as input all screen feature layers, all minimap feature layers, and the flat `player` features.
+This model takes as input all screen feature layers, all minimap feature layers, and the flat `player` features. At any given step, it can output any available action (function identifier) with any set of possible arguments.
 
 ### Estimator
 Categorical screen and minimap (spatial) features are first embedded into continuous space through one-hot encoding in the channel dimension followed by a 1x1 convolution, and numeric features are scaled by a log-transform. Spatial features are then processed by their own copy of a two-layer convolutional neural network with 16 and 32 filters, 8x8 and 4x4 kernel dimensions, and strides of 4x4 and 2x2 respectively, all with ReLU activations. Flat features are processed by a 64 unit fully-connected layer with a tanh activation.
