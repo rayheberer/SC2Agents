@@ -84,5 +84,5 @@ All checkpoint files are stored in this [Google Drive](https://drive.google.com/
 
 The following agents are implemented in this repository:
 
-* __A2C__ - a synchronous variant of DeepMind's baseline actor-critic agent, based on the Atari-net architecture of [Asynchronous Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1602.01783)
+* __A2CAtari__ - a synchronous variant of DeepMind's baseline actor-critic agent, based on the Atari-net architecture of [Asynchronous Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1602.01783)
 * __DQNMoveOnly__ - a deep q-learner that processes a single screen feature layer through a convolutional neural network and outputs spacial coordinates for the `Move_screen` action.
