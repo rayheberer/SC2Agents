@@ -39,7 +39,7 @@ class A2C(base_agent.BaseAgent):
                  discount_factor=FLAGS.discount_factor,
                  trajectory_training_steps=FLAGS.trajectory_training_steps,
                  training=FLAGS.training,
-                 save_dir="./checkpoints",
+                 save_dir="./checkpoints/",
                  ckpt_name="A2C",
                  summary_path="./tensorboard/A2C"):
         """Initialize rewards/episodes/steps, build network."""
@@ -106,6 +106,7 @@ class A2C(base_agent.BaseAgent):
         # handle end of episode if terminal step
         if self.training and obs.step_type == 2:
             self._handle_episode_end()
+            terminal = True
 
         # get observations of state
         observation = obs.observation
@@ -133,8 +134,8 @@ class A2C(base_agent.BaseAgent):
                 self.reward_buffer.appendleft(obs.reward)
 
             # cut trajectory and train model
-            if self.steps % self.trajectory_training_steps == 0:
-                self._train_network()
+            if self.steps % self.trajectory_training_steps == 0 or terminal:
+                self._train_network(terminal)
 
             self.last_action = [action_id, args, arg_types]
 
@@ -224,11 +225,11 @@ class A2C(base_agent.BaseAgent):
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
 
-    def _train_network(self):
-        feed_dict = self._get_batch()
+    def _train_network(self, terminal):
+        feed_dict = self._get_batch(terminal)
         self.network.optimizer_op(self.sess, feed_dict)
 
-    def _get_batch(self, terminal=False):
+    def _get_batch(self, terminal):
         # state
         screen = [each[0] for each in self.state_buffer]
         minimap = [each[1] for each in self.state_buffer]

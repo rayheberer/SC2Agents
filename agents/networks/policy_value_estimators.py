@@ -95,6 +95,11 @@ class AtariNet(object):
                 trainable=False,
                 name="global_episode")
 
+            self.increment_global_episode = tf.assign(
+                self.global_episode,
+                self.global_episode + 1,
+                name="increment_global_episode")
+
             # state placeholders
             self.screen_features = tf.placeholder(
                 tf.int32,
