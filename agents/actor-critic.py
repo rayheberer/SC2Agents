@@ -96,7 +96,7 @@ class A2C(base_agent.BaseAgent):
             self.action_buffer = deque(maxlen=self.trajectory_training_steps)
             self.reward_buffer = deque(maxlen=self.trajectory_training_steps)
             episode = self.network.global_episode.eval(session=self.sess)
-            print("Global training episode:", episode)
+            print("Global training episode:", episode + 1)
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""

@@ -17,7 +17,7 @@ At the moment, deep RL agents are unable to defeat the easiest of the scripted b
 To ensure that the version is compatible with the agents in this repository, I recommend using [Pipenv](https://docs.pipenv.org/).
 
 ```
-$ pip install pipenv
+$ pip insatll pipenv
 
 $ git clone https://github.com/rayheberer/SC2Agents.git
 
