@@ -18,28 +18,28 @@ Replays and Tensorboard metrics for each individual run are stored in correspond
   </tr>
   <tr>
     <td align="center">DQNMoveOnly</td>
-    <td align="right">
+    <td align="center">
       Mean: ~20<br>
       Max: 23
     </td>
-    <td align="right">
+    <td align="center">
       Mean: ~75<br>
       Max: 99
     </td>
-    <td align="right"></td>
-    <td align="right"></td>
-    <td align="right"></td>
-    <td align="right"></td>
-    <td align="right"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
   </tr>
   <tr>
-    <td align="right">A2CAtari</td>
-    <td align="right"></td>
-    <td align="right"></td>
-    <td align="right"></td>
-    <td align="right"></td>
-    <td align="right"></td>
-    <td align="right"></td>
-    <td align="right"></td>
+    <td align="center">A2CAtari</td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
   </tr>
 </table>
