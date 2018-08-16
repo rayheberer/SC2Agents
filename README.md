@@ -14,7 +14,7 @@ At the moment, deep RL agents are unable to defeat the easiest of the scripted b
 
 ### 1. Install Dependencies
 
-To ensure that the version is compatible with the agents in this repository, I recommend using [Pipenv](https://docs.pipenv.org/).
+To ensure that the version is compatible with the agents in this repository, I recommend using [Pipenv](https://docs.pipenv.org/). Otherwise, ensure that you have the requirements listed above, and their dependencies.
 
 ```
 $ pip insatll pipenv
@@ -70,8 +70,6 @@ $ tensorboard --logdir=./tensorboard/deepq
 $ python -m run --map CollectMineralShards --agent agents.deepq.DQNMoveOnly --training=False
 ```
 
-
-
 ### 6. Watch a Replay
 
 ```
@@ -86,4 +84,5 @@ All checkpoint files are stored in this [Google Drive](https://drive.google.com/
 
 The following agents are implemented in this repository:
 
+* __A2C__ - a synchronous variant of DeepMind's baseline actor-critic agent, based on the Atari-net architecture of [Asynchronous Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1602.01783)
 * __DQNMoveOnly__ - a deep q-learner that processes a single screen feature layer through a convolutional neural network and outputs spacial coordinates for the `Move_screen` action.

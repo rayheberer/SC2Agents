@@ -29,7 +29,7 @@ SCREEN_TYPES = [sc2_actions.TYPES[0], sc2_actions.TYPES[2]]
 MINIMAP_TYPES = [sc2_actions.TYPES[1]]
 
 
-class A2C(base_agent.BaseAgent):
+class A2CAtari(base_agent.BaseAgent):
     """Synchronous version of DeepMind baseline Advantage actor-critic."""
 
     def __init__(self,
@@ -40,10 +40,10 @@ class A2C(base_agent.BaseAgent):
                  trajectory_training_steps=FLAGS.trajectory_training_steps,
                  training=FLAGS.training,
                  save_dir="./checkpoints/",
-                 ckpt_name="A2C",
-                 summary_path="./tensorboard/A2C"):
+                 ckpt_name="A2CAtari",
+                 summary_path="./tensorboard/A2CAtari"):
         """Initialize rewards/episodes/steps, build network."""
-        super(A2C, self).__init__()
+        super(A2CAtari, self).__init__()
 
         # saving and summary writing
         if FLAGS.save_dir:
