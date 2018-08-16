@@ -93,7 +93,7 @@ flags.DEFINE_integer("max_memory", 10000, "Experience replay buffer capacity.")
 flags.DEFINE_integer("batch_size", 16, "Training batch size.")
 flags.DEFINE_bool("indicate_nonrandom_action", False, "Show nonrandom actions.")
 
-# A2C
+# A2CAtari
 flags.DEFINE_integer("trajectory_training_steps", 40, "When to cut trajectory and train network.")
 flags.DEFINE_float("value_gradient_strength", 0.5, "Scaling parameter for value estimation gradient.")
 flags.DEFINE_float("regularization_strength", 0.01, "Scaling parameter for entropy regularization.")
