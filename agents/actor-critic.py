@@ -104,6 +104,7 @@ class A2C(base_agent.BaseAgent):
         self.reward += obs.reward
 
         # handle end of episode if terminal step
+        terminal = False
         if self.training and obs.step_type == 2:
             self._handle_episode_end()
             terminal = True
