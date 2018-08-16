@@ -9,6 +9,11 @@ Replays and Tensorboard metrics for each individual run are stored in correspond
     <td align="center"></td>
     <td align="center">MoveToBeacon</td>
     <td align="center">CollectMineralShards</td>
+    <td align="center">FindAndDefeatZerglings</td>
+    <td align="center">DefeatRoaches</td>
+    <td align="center">DefeatZerglingsAndBanelings</td>
+    <td align="center">CollectMineralsAndGas</td>
+    <td align="center">BuildMarines</td>
 
   </tr>
   <tr>
@@ -21,8 +26,18 @@ Replays and Tensorboard metrics for each individual run are stored in correspond
       Mean Score: ~75<br>
       Max Score: 99
     </td>
+    <td align="right"></td>
+    <td align="right"></td>
+    <td align="right"></td>
+    <td align="right"></td>
+    <td align="right"></td>
   </tr>
   <tr>
+    <td align="right">A2CAtari</td>
+    <td align="right"></td>
+    <td align="right"></td>
+    <td align="right"></td>
+    <td align="right"></td>
     <td align="right"></td>
     <td align="right"></td>
     <td align="right"></td>
