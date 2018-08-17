@@ -137,7 +137,7 @@ class DQNMoveOnly(base_agent.BaseAgent):
             self.last_action = None
 
             episode = self.network.global_episode.eval(session=self.sess)
-            print("Global training episode:", episode)
+            print("Global training episode:", episode + 1)
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
@@ -193,6 +193,9 @@ class DQNMoveOnly(base_agent.BaseAgent):
 
     def _handle_episode_end(self):
         """Save weights and write summaries."""
+        # increment global training episode
+        self.network.increment_global_episode_op(self.sess)
+
         # save current model
         self.network.save_model(self.sess)
         print("Model Saved")
@@ -202,9 +205,6 @@ class DQNMoveOnly(base_agent.BaseAgent):
         self.network.write_summary(
             self.sess, states, actions, targets, self.reward)
         print("Summary Written")
-
-        # increment global training episode
-        self.network.increment_global_episode_op(self.sess)
 
     def _tf_init_op(self):
         init_op = tf.global_variables_initializer()

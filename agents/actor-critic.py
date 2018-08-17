@@ -88,6 +88,7 @@ class A2CAtari(base_agent.BaseAgent):
     def reset(self):
         """Handle the beginning of new episodes."""
         self.episodes += 1
+        self.steps = 0
         self.reward = 0
 
         if self.training:
@@ -211,6 +212,9 @@ class A2CAtari(base_agent.BaseAgent):
         # train network
         self._train_network(terminal=True)
 
+        # increment global training episode
+        self.network.increment_global_episode_op(self.sess)
+
         # save current model
         self.network.save_model(self.sess)
         print("Model Saved")
@@ -219,9 +223,6 @@ class A2CAtari(base_agent.BaseAgent):
         self.network.write_summary(
             self.sess, self.reward)
         print("Summary Written")
-
-        # increment global training episode
-        self.network.increment_global_episode_op(self.sess)
 
     def _tf_init_op(self):
         init_op = tf.global_variables_initializer()
