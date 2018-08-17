@@ -104,10 +104,8 @@ class A2CAtari(base_agent.BaseAgent):
         self.reward += obs.reward
 
         # handle end of episode if terminal step
-        terminal = False
         if self.training and obs.step_type == 2:
             self._handle_episode_end()
-            terminal = True
 
         # get observations of state
         observation = obs.observation
@@ -135,8 +133,8 @@ class A2CAtari(base_agent.BaseAgent):
                 self.reward_buffer.appendleft(obs.reward)
 
             # cut trajectory and train model
-            if self.steps % self.trajectory_training_steps == 0 or terminal:
-                self._train_network(terminal)
+            if self.steps % self.trajectory_training_steps == 0:
+                self._train_network()
 
             self.last_action = [action_id, args, arg_types]
 
@@ -210,6 +208,9 @@ class A2CAtari(base_agent.BaseAgent):
 
     def _handle_episode_end(self):
         """Save weights and write summaries."""
+        # train network
+        self._train_network(terminal=True)
+
         # save current model
         self.network.save_model(self.sess)
         print("Model Saved")
@@ -226,7 +227,7 @@ class A2CAtari(base_agent.BaseAgent):
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
 
-    def _train_network(self, terminal):
+    def _train_network(self, terminal=False):
         feed_dict = self._get_batch(terminal)
         self.network.optimizer_op(self.sess, feed_dict)
 

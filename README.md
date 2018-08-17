@@ -28,7 +28,7 @@ $ pipenv install
 
 ### 2. Install StarCraft II
 
-http://us.battle.net/sc2/en/legacy-of-the-void/
+http://us.battle.net/sc2/en/legacy-of-the-void/#footer
 
 PySC2 expects the game to be installed in `~/StarCraftII/`, but this can be overriden by setting the `SC2PATH` environment variable.
 
