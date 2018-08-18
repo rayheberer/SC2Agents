@@ -306,27 +306,24 @@ class AtariNet(object):
             name="advantage")
 
         # a2c gradient = policy gradient + value gradient + regularization
-        self.policy_gradient = tf.multiply(
-            self.advantage,
-            tf.log(self.action_probability * self.args_probability),
+        self.policy_gradient = -tf.reduce_mean(
+            (self.advantage *
+             tf.log(self.action_probability * self.args_probability)),
             name="policy_gradient")
 
-        self.value_estimation_gradient = tf.multiply(
-            self.advantage,
-            tf.squeeze(self.value_estimate),
-            name="value_estimation_gradient")
+        self.value_gradient = -tf.reduce_mean(
+            self.advantage * tf.squeeze(self.value_estimate),
+            name="value_gradient")
 
         # only including function identifier entropy, not args
-        self.entropy_regularization = tf.reduce_sum(
+        self.entropy = tf.reduce_sum(
             self.function_policy * tf.log(self.function_policy),
             name="entropy_regularization")
 
-        self.a2c_gradient = -tf.add_n(
-            inputs=[tf.reduce_sum(self.policy_gradient),
-                    (self.value_gradient_strength *
-                     tf.reduce_sum(self.value_estimation_gradient)),
-                    (self.regularization_strength *
-                     self.entropy_regularization)],
+        self.a2c_gradient = tf.add_n(
+            inputs=[self.policy_gradient,
+                    self.value_gradient_strength * self.value_gradient,
+                    self.regularization_strength * self.entropy],
             name="a2c_gradient")
 
         self.optimizer = tf.train.RMSPropOptimizer(
