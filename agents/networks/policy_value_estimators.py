@@ -62,11 +62,10 @@ class AtariNet(object):
         """Restore from ckpt."""
         self.saver.restore(sess, self.save_path)
 
-    def write_summary(self, sess, score, feed_dict):
+    def write_summary(self, sess, global_episode, score, feed_dict):
         """Write summary to Tensorboard."""
         feed_dict[self.score] = score
 
-        global_episode = self.global_episode.eval(session=sess)
         summary = sess.run(
             self.write_op,
             feed_dict=feed_dict)

@@ -96,8 +96,8 @@ class A2CAtari(base_agent.BaseAgent):
             self.state_buffer = deque(maxlen=self.trajectory_training_steps)
             self.action_buffer = deque(maxlen=self.trajectory_training_steps)
             self.reward_buffer = deque(maxlen=self.trajectory_training_steps)
-            episode = self.network.global_episode.eval(session=self.sess)
-            print("Global training episode:", episode + 1)
+            self.glob_ep = self.network.global_episode.eval(session=self.sess)
+            print("Global training episode:", self.glob_ep + 1)
 
     def step(self, obs):
         """If no units selected, selects army, otherwise move."""
@@ -221,7 +221,7 @@ class A2CAtari(base_agent.BaseAgent):
 
         # write summaries from last episode
         self.network.write_summary(
-            self.sess, self.reward, feed_dict)
+            self.sess, self.glob_ep, self.reward, feed_dict)
         print("Summary Written")
 
     def _tf_init_op(self):
