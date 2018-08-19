@@ -210,7 +210,7 @@ class A2CAtari(base_agent.BaseAgent):
     def _handle_episode_end(self):
         """Save weights and write summaries."""
         # train network
-        self._train_network(terminal=True)
+        feed_dict = self._train_network(terminal=True)
 
         # increment global training episode
         self.network.increment_global_episode_op(self.sess)
@@ -221,7 +221,7 @@ class A2CAtari(base_agent.BaseAgent):
 
         # write summaries from last episode
         self.network.write_summary(
-            self.sess, self.reward)
+            self.sess, self.reward, feed_dict)
         print("Summary Written")
 
     def _tf_init_op(self):
@@ -231,6 +231,7 @@ class A2CAtari(base_agent.BaseAgent):
     def _train_network(self, terminal=False):
         feed_dict = self._get_batch(terminal)
         self.network.optimizer_op(self.sess, feed_dict)
+        return feed_dict
 
     def _get_batch(self, terminal):
         # state

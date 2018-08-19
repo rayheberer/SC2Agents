@@ -44,6 +44,10 @@ class AtariNet(object):
         if summary_path:
             self.writer = tf.summary.FileWriter(summary_path)
             tf.summary.scalar("Score", self.score)
+            tf.summary.scalar("Policy_Loss", self.policy_gradient)
+            tf.summary.scalar("Value_Loss", self.value_gradient)
+            tf.summary.scalar("Entropy", self.entropy)
+            tf.summary.scalar("A2C_Loss", self.a2c_gradient)
             self.write_op = tf.summary.merge_all()
 
         # setup model saver
@@ -58,12 +62,14 @@ class AtariNet(object):
         """Restore from ckpt."""
         self.saver.restore(sess, self.save_path)
 
-    def write_summary(self, sess, score):
+    def write_summary(self, sess, score, feed_dict):
         """Write summary to Tensorboard."""
+        feed_dict[self.score] = score
+
         global_episode = self.global_episode.eval(session=sess)
         summary = sess.run(
             self.write_op,
-            feed_dict={self.score: score})
+            feed_dict=feed_dict)
         self.writer.add_summary(summary, global_episode - 1)
         self.writer.flush
 
